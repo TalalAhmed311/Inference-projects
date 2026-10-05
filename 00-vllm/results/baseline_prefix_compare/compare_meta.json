@@ -1,0 +1,6 @@
+{
+  "with_prefix_dir": "/mnt/data/inference/00-vllm/results/baseline_prefix_compare/20261005_122011_baseline_with_prefix",
+  "noprefix_dir": "/mnt/data/inference/00-vllm/results/baseline_prefix_compare/20261005_122618_baseline_noprefix",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "sweep": "in=128/512/2048 out=128/512 conc=1/4/16/64"
+}
