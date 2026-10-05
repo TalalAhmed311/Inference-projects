@@ -16,6 +16,7 @@
   --cpu:#d97706; --cpu-soft:#fdf3e2; --gpu:#16a34a; --gpu-soft:#e6f6ea;
   --kv:#8b5cf6; --weights:#0ea5e9; --act:#f59e0b; --free:#e7e7e2;
   --code-bg:#f3f3ef; --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+  --series-1:#2a78d6; --series-2:#eb6834;
   --r1:#6366f1; --r2:#ec4899; --r3:#14b8a6; --r4:#f59e0b; --r5:#84cc16; --r6:#06b6d4;
 }
 @media (prefers-color-scheme: dark){
@@ -25,6 +26,7 @@
     --accent:#8b8cf8; --accent-soft:#232449; --accent-text:#c7c8ff;
     --wait:#3a4252; --cpu-soft:#2d2210; --gpu-soft:#11291a; --free:#2a2b30;
     --code-bg:#1b1c20; --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+    --series-1:#3987e5; --series-2:#d95926;
   }
 }
 :root[data-theme="dark"]{
@@ -33,6 +35,7 @@
   --accent:#8b8cf8; --accent-soft:#232449; --accent-text:#c7c8ff;
   --wait:#3a4252; --cpu-soft:#2d2210; --gpu-soft:#11291a; --free:#2a2b30;
   --code-bg:#1b1c20; --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+--series-1:#3987e5; --series-2:#d95926;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:72px}
@@ -97,7 +100,9 @@ svg text{font-family:Inter,system-ui,sans-serif}
 .fstep code{font-size:11.5px;display:block;white-space:normal;word-break:break-all}
 
 /* explorer */
-.explorer{display:grid;grid-template-columns:300px minmax(0,1fr);overflow:hidden}
+.explorer{display:grid;grid-template-columns:340px minmax(0,1fr);overflow:hidden}
+.tree{min-width:0}
+.tree .row span:nth-child(2){min-width:0;overflow-wrap:anywhere}
 @media (max-width:860px){.explorer{grid-template-columns:1fr}}
 .tree{border-right:1px solid var(--border);padding:14px 10px;background:var(--surface-2)}
 @media (max-width:860px){.tree{border-right:0;border-bottom:1px solid var(--border)}}
@@ -226,6 +231,24 @@ th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--fa
 .bars .fill{height:100%;border-radius:6px}
 .note{font-size:12.5px;color:var(--muted);margin-top:10px}
 .callout{border:1px solid var(--border);border-left:4px solid var(--act);border-radius:0 10px 10px 0;padding:12px 16px;background:var(--surface);margin-top:16px;font-size:14px}
+.seg{display:flex;flex-wrap:wrap;gap:4px;background:var(--surface-2);padding:4px;border-radius:10px}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:7px;cursor:pointer;font-family:"JetBrains Mono",monospace}
+.seg button[aria-selected="true"]{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+.charttitle{font-size:12.5px;font-weight:650;margin:6px 0 2px}
+svg.chart{display:block;width:100%;height:auto}
+.heat{display:grid;grid-template-columns:minmax(110px,max-content) repeat(4,minmax(0,1fr));gap:3px;font-family:"JetBrains Mono",monospace;font-size:12.5px}
+.heat .hh{font-size:11px;color:var(--faint);text-align:center;padding:4px 0;font-family:Inter}
+.heat .hh:first-child{text-align:left}
+.heat .hl-lab{padding:8px 10px;border-radius:6px;cursor:pointer;color:var(--muted);font-weight:600}
+.heat .hl-lab.on{background:var(--accent-soft);color:var(--accent-text)}
+.heat .hc{padding:8px 6px;border-radius:6px;text-align:center;cursor:pointer;font-weight:600}
+@media (max-width:560px){.heat{font-size:10.5px;grid-template-columns:minmax(78px,max-content) repeat(4,minmax(0,1fr))}.heat .hc{padding:8px 1px}.heat .hl-lab{padding:8px 4px}}
+.heat .hc.on{outline:2px solid var(--accent);outline-offset:-2px}
+.tip{position:fixed;z-index:50;pointer-events:none;opacity:0;transition:opacity .12s;background:var(--surface);color:var(--text);border:1px solid var(--border);box-shadow:0 6px 24px rgba(0,0,0,.18);border-radius:9px;padding:8px 10px;font-size:12px;line-height:1.5;max-width:280px}
+.hero-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:22px}
+@media (max-width:900px){.hero-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.hero-kpis a{text-decoration:none;color:inherit}
+.answered{display:inline-block;font-size:11px;font-weight:700;color:var(--decode);margin-bottom:2px}
 footer{text-align:center;color:var(--faint);font-size:12px;padding:40px 16px}
 </style>
 </head>
@@ -236,7 +259,7 @@ footer{text-align:center;color:var(--faint);font-size:12px;padding:40px 16px}
   <div class="links" id="links">
     <a href="#workflow">Workflow</a><a href="#code">Code map</a><a href="#deploy">Deployment</a>
     <a href="#startup">Startup &amp; memory</a><a href="#request">Request path</a><a href="#batching">Batching sim</a>
-    <a href="#perf">Prefill vs decode</a><a href="#bench">Benchmark</a><a href="#config">Configs</a><a href="#cpugpu">CPU vs GPU</a><a href="#run">Runbook</a>
+    <a href="#perf">Prefill vs decode</a><a href="#bench">Benchmark</a><a href="#config">Configs</a><a href="#cpugpu">CPU vs GPU</a><a href="#results">Results</a><a href="#run">Runbook</a>
   </div>
   <button class="iconbtn" id="theme" title="Toggle theme" aria-label="Toggle theme">◐</button>
 </div></nav>
@@ -256,7 +279,14 @@ footer{text-align:center;color:var(--faint);font-size:12px;padding:40px 16px}
     <span class="step">Build a simplified version</span><span class="arr">→</span>
     <span class="step">Compare</span><span class="arr">→</span><span class="step">Write</span>
   </div>
-  <p class="small muted" style="margin-top:10px">Stage 0 covers the highlighted steps. It produces the baseline numbers that every later stage is compared against.</p>
+  <div class="hero-kpis">
+    <a class="card pad" href="#results"><div class="small muted">1-request decode</div><div class="big" style="font-size:1.3rem">122 tok/s</div><div class="small muted">8.15 ms/token</div></a>
+    <a class="card pad" href="#results"><div class="small muted">Peak throughput</div><div class="big" style="font-size:1.3rem">5,239 tok/s</div><div class="small muted">128/512 at C = 64</div></a>
+    <a class="card pad" href="#results"><div class="small muted">KV cache</div><div class="big" style="font-size:1.3rem">591k tok</div><div class="small muted">72× at 8,192 tokens</div></a>
+    <a class="card pad" href="#results"><div class="small muted">Prefix cache, 2048-token prompt</div><div class="big" style="font-size:1.3rem">123 → 26 ms</div><div class="small muted">TTFT at C = 1</div></a>
+    <a class="card pad" href="#results"><div class="small muted">Int4 weights</div><div class="big" style="font-size:1.3rem">2× decode</div><div class="small muted">8.15 → 4.0 ms/token</div></a>
+  </div>
+  <p class="small muted" style="margin-top:10px">Measured on an A10G with Qwen2.5-1.5B-Instruct and vLLM 0.31.0 (2026-10-05). Stage 0 covers the highlighted steps. It produces the baseline numbers that every later stage is compared against.</p>
 </header>
 
 <!-- WORKFLOW -->
@@ -264,7 +294,7 @@ footer{text-align:center;color:var(--faint);font-size:12px;padding:40px 16px}
   <div class="eyebrow">01 · Workflow</div>
   <h2>Six steps from an empty EC2 box to a results table</h2>
   <div class="flow">
-    <div class="card fstep"><div class="n">1</div><h3>Launch EC2</h3><p>g5.xlarge (A10G 24 GB), Deep Learning Base AMI, 100 GB disk, SSH only.</p><span class="pill">AWS console</span></div>
+    <div class="card fstep"><div class="n">1</div><h3>Launch EC2</h3><p>A10G 24 GB (your run: 8 vCPU, 30 GiB RAM). Use the driver AMI and a large disk; see the problems table in Results.</p><span class="pill">AWS console</span></div>
     <div class="card fstep"><div class="n">2</div><h3>Install</h3><p>Checks the driver, creates a venv, installs vLLM and the client libraries.</p><code>bash deployment/setup_ec2.sh</code></div>
     <div class="card fstep"><div class="n">3</div><h3>Serve</h3><p>Starts the OpenAI-compatible server on 127.0.0.1:8000 inside tmux.</p><code>bash deployment/serve.sh</code></div>
     <div class="card fstep"><div class="n">4</div><h3>Smoke test</h3><p>Checks the 8 API paths the benchmark relies on. Exits 1 on failure.</p><code>python tests/smoke_test.py</code></div>
@@ -337,24 +367,24 @@ footer{text-align:center;color:var(--faint);font-size:12px;padding:40px 16px}
   <text x="260" y="252" text-anchor="middle" class="t-faint" font-size="10">encrypted</text>
   <!-- EC2 -->
   <rect x="300" y="10" width="690" height="410" rx="18" class="f-surface2 s-border" stroke-width="1"/>
-  <text x="322" y="38" class="glabel t-muted">EC2 g5.xlarge · Ubuntu DLAMI · security group: SSH from your IP only</text>
+  <text x="322" y="38" class="glabel t-muted">EC2 · A10G · Ubuntu · security group: SSH from your IP only</text>
   <!-- CPU side -->
   <rect x="320" y="55" width="400" height="350" rx="14" class="grp-cpu"/>
-  <text x="338" y="80" class="glabel" fill="var(--cpu)">CPU · 4 vCPU · 16 GB RAM</text>
+  <text x="338" y="80" class="glabel" fill="var(--cpu)">CPU · 8 vCPU EPYC · 30 GiB RAM</text>
   <g class="node"><rect x="338" y="95" width="364" height="86" rx="10"/><text x="352" y="118">vllm serve · API server process</text><text class="sub" x="352" y="138">FastAPI/uvicorn on 127.0.0.1:8000</text><text class="sub" x="352" y="155">chat template · tokenize · detokenize · SSE stream</text><text class="sub" x="352" y="172">/metrics (Prometheus) · /health</text></g>
   <g class="node"><rect x="338" y="196" width="364" height="70" rx="10"/><text x="352" y="220">EngineCore process</text><text class="sub" x="352" y="240">busy loop: schedule → execute → update</text><text class="sub" x="352" y="256">KV block manager · prefix cache hash table</text></g>
   <path class="edge" d="M520 181 V194" marker-end="url(#ah2)" marker-start="url(#ah2)"/>
   <text x="528" y="191" class="t-faint" font-size="10">ZMQ</text>
   <g class="node"><rect x="338" y="281" width="176" height="56" rx="10"/><text x="352" y="304">bench.py</text><text class="sub" x="352" y="322">smoke_test.py · curl</text></g>
   <g class="node"><rect x="526" y="281" width="176" height="56" rx="10"/><text x="540" y="304">nvidia-smi</text><text class="sub" x="540" y="322">sampled every 0.5 s</text></g>
-  <g class="node"><rect x="338" y="349" width="364" height="44" rx="10"/><text x="352" y="376">EBS 100 GB · ~/.cache/huggingface (weights)</text></g>
+  <g class="node"><rect x="338" y="349" width="364" height="44" rx="10"/><text x="352" y="376">/mnt/data NVMe 412 GB · venv · HF cache · results</text></g>
   <path class="edge" d="M426 281 V183" marker-end="url(#ah2)" stroke-dasharray="4 3"/>
   <!-- GPU -->
   <rect x="740" y="55" width="232" height="350" rx="14" class="grp-gpu"/>
   <text x="758" y="80" class="glabel" fill="var(--gpu)">GPU · A10G · 24 GB</text>
-  <rect x="758" y="95" width="196" height="40" rx="7" fill="var(--weights)"/><text x="856" y="120" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">model weights</text>
+  <rect x="758" y="95" width="196" height="40" rx="7" fill="var(--weights)"/><text x="856" y="120" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">weights 2.98 GiB</text>
   <rect x="758" y="139" width="196" height="26" rx="7" fill="var(--act)"/><text x="856" y="157" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">activations + CUDA graphs</text>
-  <rect x="758" y="169" width="196" height="150" rx="7" fill="var(--kv)"/><text x="856" y="236" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">KV cache pool</text><text x="856" y="254" text-anchor="middle" fill="#fff" font-size="11" opacity=".9">16-token blocks</text>
+  <rect x="758" y="169" width="196" height="150" rx="7" fill="var(--kv)"/><text x="856" y="228" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">KV cache pool</text><text x="856" y="246" text-anchor="middle" fill="#fff" font-size="11" opacity=".9">15.78 GiB · 16-token blocks</text><text x="856" y="262" text-anchor="middle" fill="#fff" font-size="11" opacity=".9">591,088 tokens</text>
   <rect x="758" y="323" width="196" height="26" rx="7" class="f-surface" stroke="var(--border)"/><text x="856" y="341" text-anchor="middle" class="t-muted" font-size="11">10% left unused</text>
   <text x="856" y="378" text-anchor="middle" class="t-muted" font-size="11">90% reserved at startup</text>
   <text x="856" y="393" text-anchor="middle" class="t-muted" font-size="11">(--gpu-memory-utilization)</text>
@@ -375,9 +405,9 @@ footer{text-align:center;color:var(--faint);font-size:12px;padding:40px 16px}
         <li><b>Parse config</b><span>Flags, YAML, env vars and the model's <code>config.json</code> are combined into one <code>VllmConfig</code>.</span></li>
         <li><b>Download weights</b><span><code>.safetensors</code> files from the Hugging Face Hub are saved to <code>~/.cache/huggingface</code>. Only the first run downloads them.</span></li>
         <li><b>Spawn processes</b><span>The API server and EngineCore run as separate processes and talk over ZMQ. There's one GPU worker per GPU.</span></li>
-        <li><b>Load weights to GPU</b><span>A 1.5B model in bf16 is about 3 GB; a 7B model is about 15 GB.</span></li>
+        <li><b>Load weights to GPU</b><span>A 1.5B model in bf16 is about 3 GB; a 7B model is about 15 GB. <b style="display:inline;color:var(--series-1)">Your run: 2.98 GiB in about 2.7 s.</b></span></li>
         <li><b>Profile run</b><span>A dummy forward pass at maximum batch size measures peak activation memory.</span></li>
-        <li><b>Allocate KV cache</b><span>Whatever is left of the reserved memory becomes the KV block pool. The log shows <em>"GPU KV cache size: N tokens"</em> and <em>"Maximum concurrency"</em>.</span></li>
+        <li><b>Allocate KV cache</b><span>Whatever is left of the reserved memory becomes the KV block pool. The log shows <em>"GPU KV cache size: N tokens"</em> and <em>"Maximum concurrency"</em>. <b style="display:inline;color:var(--series-1)">Your run: 15.78 GiB → 591,088 tokens, 72.15× at 8,192 tokens.</b></span></li>
         <li><b>Capture CUDA graphs</b><span>Decode steps for common batch sizes are recorded once and replayed later with one launch each.</span></li>
         <li><b>Start HTTP</b><span>uvicorn starts listening on :8000. <code>/health</code> returns 200.</span></li>
       </ol>
@@ -399,6 +429,7 @@ footer{text-align:center;color:var(--faint);font-size:12px;padding:40px 16px}
       </div>
       <div class="kpis" id="m-kpis"></div>
       <div class="formula" id="m-formula"></div>
+      <div class="callout" id="m-measured" style="margin-top:12px;border-left-color:var(--series-1)"></div>
       <p class="note">Estimates. vLLM measures activation memory with its profile run; this calculator assumes about 1.5 GB. The decode floor is weights ÷ memory bandwidth: the fastest a single request can generate tokens.</p>
     </div>
   </div>
@@ -496,12 +527,16 @@ footer{text-align:center;color:var(--faint);font-size:12px;padding:40px 16px}
       </table></div>
     </div>
     <div class="card pad">
-      <h3>Why batching is nearly free (toy model)</h3>
-      <p class="small muted">Qwen2.5-1.5B on an A10G with 1024 tokens of context per request. Every decode step reads all the weights once, however many requests are in the batch, so adding requests raises total throughput far more than it slows each one.</p>
+      <h3>Why batching is nearly free: model vs your measurements</h3>
+      <p class="small muted">Qwen2.5-1.5B on an A10G. Every decode step reads all the weights once, however many requests are in the batch, so adding requests raises total throughput far more than it slows each one. The dashed line is a simple bandwidth model; the dots are your measured 128/128 results.</p>
       <div class="ctl" style="margin-top:10px"><label>Concurrent requests (batch) <b id="b-c-v"></b></label><input type="range" id="b-c" min="0" max="8" step="1" value="0"></div>
       <div class="kpis" id="b-kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
-      <div class="svgwrap" style="margin-top:12px"><svg id="b-chart" viewBox="0 0 480 220" style="min-width:380px" role="img" aria-label="Throughput and TPOT vs batch size"></svg></div>
-      <p class="note">step time = max(bytes read ÷ 600 GB/s, FLOPs ÷ ~75 TFLOPS) + ~1.5 ms overhead. These are rough numbers; your benchmark measures the real curve.</p>
+      <div class="legend" style="margin-top:12px"><span><i style="background:repeating-linear-gradient(90deg,var(--faint) 0 5px,transparent 5px 8px);height:3px"></i>bandwidth model</span><span><i style="background:var(--series-1);border-radius:50%"></i>measured (in 128 / out 128)</span></div>
+      <div class="charttitle" style="margin-top:8px">Total output tok/s vs concurrent requests</div>
+      <svg class="chart" id="b-chart-tok" role="img" aria-label="Throughput vs batch size"></svg>
+      <div class="charttitle" style="margin-top:8px">TPOT (ms) vs concurrent requests</div>
+      <svg class="chart" id="b-chart-tpot" role="img" aria-label="TPOT vs batch size"></svg>
+      <p class="note">Model: step time = max(bytes read ÷ 600 GB/s, FLOPs ÷ ~75 TFLOPS) + 3 ms overhead, calibrated so C = 1 matches your 8.15 ms. It agrees with your measurements up to C = 16. At C = 64 the measured run is slower (12.3 vs 8.9 ms, 4.1k vs 7.2k tok/s) because in the closed-loop benchmark new requests keep arriving, and their prefills share every step with the decodes. The model leaves that out.</p>
     </div>
   </div>
 </section>
@@ -631,23 +666,112 @@ footer{text-align:center;color:var(--faint);font-size:12px;padding:40px 16px}
   </div>
 </section>
 
+<!-- RESULTS -->
+<section id="results">
+  <div class="eyebrow">11 · Measured results</div>
+  <h2>What the A10G actually did</h2>
+  <p class="lead">These are the measurements from your EC2 run on 2026-10-05 (<code>results/REPORT.md</code>): the 24-configuration baseline sweep, a re-run comparing a shared prompt prefix with no shared prefix, and five quantization variants. Every chart reads the committed CSVs. Hover over any bar or cell to see its exact value.</p>
+
+  <div class="grid g2" style="margin-top:20px;align-items:start">
+    <div class="card pad">
+      <h3>Setup</h3>
+      <div class="tablewrap" style="margin-top:8px"><table>
+        <tr><td class="muted">Instance</td><td>A10G 23,028 MiB · 8× AMD EPYC 7R32 vCPU · 30 GiB RAM <span class="small muted">(g5.2xlarge-class)</span></td></tr>
+        <tr><td class="muted">Software</td><td>vLLM <b>0.31.0</b> · torch 2.13.0+cu130 · driver 580.178.04</td></tr>
+        <tr><td class="muted">Model</td><td><code>Qwen/Qwen2.5-1.5B-Instruct</code> bf16</td></tr>
+        <tr><td class="muted">Serve flags</td><td><code>--max-model-len 8192</code> <code>--gpu-memory-utilization 0.90</code> <code>VLLM_USE_FLASHINFER_SAMPLER=0</code></td></tr>
+        <tr><td class="muted">Sweep</td><td>in 128/512/2048 × out 128/512 × C 1/4/16/64 · <b>0 errors</b> in 24 configs · smoke test passed</td></tr>
+      </table></div>
+    </div>
+    <div class="card pad">
+      <h3>Startup memory: calculator vs measured</h3>
+      <p class="small muted">From the vLLM startup log. The calculator in section 04 predicted about 594k KV tokens for this setup; vLLM measured 591,088.</p>
+      <div class="membar" id="r-membar"></div>
+      <div class="legend" style="margin-top:4px">
+        <span><i style="background:var(--weights)"></i>weights 2.98 GiB</span><span><i style="background:var(--act)"></i>activations + CUDA graphs ≈1.5 GiB</span><span><i style="background:var(--kv)"></i>KV pool 15.78 GiB</span><span><i style="background:var(--free)"></i>not reserved</span>
+      </div>
+      <div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        <div class="kpi"><div class="big" style="font-size:1.2rem">591,088</div><span>KV cache tokens</span></div>
+        <div class="kpi"><div class="big" style="font-size:1.2rem">72.15×</div><span>max concurrency at 8,192 tokens</span></div>
+        <div class="kpi"><div class="big" style="font-size:1.2rem">2.7 s</div><span>weight load time</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card pad" style="margin-top:16px">
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between">
+      <div><h3>Baseline sweep explorer</h3><p class="small muted" style="margin:4px 0 0">Random prompts, so the prefix cache gives no help. Pick an input/output length pair to see how each metric changes with concurrency.</p></div>
+      <div class="seg" id="r-pairs" role="tablist" aria-label="Input/output pair"></div>
+    </div>
+    <div class="grid g2" style="margin-top:14px" id="r-minis"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-top:22px">
+      <div><h3>All 24 configurations</h3><p class="small muted" style="margin:4px 0 0">Darker means a larger value. Click a row to load it into the charts above.</p></div>
+      <div class="ctl" style="min-width:220px"><select id="r-metric" aria-label="Heatmap metric"></select></div>
+    </div>
+    <div class="heat" id="r-heat" style="margin-top:12px"></div>
+  </div>
+
+  <div class="grid g3" style="margin-top:16px" id="r-findings"></div>
+
+  <div class="card pad" style="margin-top:16px">
+    <h3>Prefix caching: the same sweep with fixed prompts</h3>
+    <p class="small muted">Two prompt banks: <b>shared prefix</b> (every prompt opens with the same 64-token policy text) and <b>no shared prefix</b> (each prompt opens with a unique document). Output = 128 tokens.</p>
+    <div class="legend" style="margin:10px 0 4px"><span><i style="background:var(--series-1)"></i>shared prefix</span><span><i style="background:var(--series-2)"></i>no shared prefix</span></div>
+    <div class="grid g2">
+      <div><div class="charttitle">TTFT p50 (ms) at C = 1</div><svg class="chart" id="r-px-ttft" role="img" aria-label="TTFT with and without shared prefix"></svg></div>
+      <div><div class="charttitle">Requests/s at C = 64</div><svg class="chart" id="r-px-qps" role="img" aria-label="Requests per second with and without shared prefix"></svg></div>
+    </div>
+    <div class="grid g3" style="margin-top:10px">
+      <div class="kpi"><div class="big" style="font-size:1.2rem">123 → 26 ms</div><span>TTFT for a 2048-token prompt, C = 1 (4.8× faster)</span></div>
+      <div class="kpi"><div class="big" style="font-size:1.2rem">3.3×</div><span>requests/s at 2048/128, C = 64 (8.3 → 27.2)</span></div>
+      <div class="kpi"><div class="big" style="font-size:1.2rem">8.15 ms</div><span>TPOT at C = 1 in both modes: caching speeds up prefill, not decode</span></div>
+    </div>
+    <div class="callout" style="border-left-color:var(--preempt)"><b>Caveat about the no-prefix numbers.</b> <code>bench_prefix_quant.py</code> replays the same prompt bank from index 0 in every configuration (<code>prompts[i % len(prompts)]</code>). That means prompts sent in earlier configurations are still in the cache. As a result, the "no shared prefix" run still shows 30–60% cache hits at C &gt; 1 and 91–99% hits for every output = 512 row. Only the output = 128 rows at C = 1 are a clean comparison. The real no-cache gap is therefore at least as large as shown, and probably larger. To fix it, give each configuration its own slice of the bank, or restart the server with <code>--no-enable-prefix-caching</code> for the no-prefix run.</div>
+  </div>
+
+  <div class="card pad" style="margin-top:16px">
+    <h3>Quantization: same model, five weight formats</h3>
+    <p class="small muted">Shared-prefix prompts, input 512/1024/2048 × output 128/256 × C 1/8/32. The concurrency cap is 32, so peak values are lower than in the baseline.</p>
+    <div class="grid g2" style="margin-top:10px">
+      <div><div class="charttitle">TPOT p50 (ms) at C = 1, input 512 / output 128 (lower is better)</div><svg class="chart" id="r-q-tpot" role="img" aria-label="Decode time per token by quantization"></svg></div>
+      <div><div class="charttitle">Peak output tok/s across the sweep (higher is better)</div><svg class="chart" id="r-q-tok" role="img" aria-label="Peak throughput by quantization"></svg></div>
+    </div>
+    <div class="tablewrap" style="margin-top:12px"><table id="r-q-table"></table></div>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="callout" style="margin-top:0;border-left-color:var(--series-1)"><b>Why int4 halves the step time.</b> Decode reads every weight once per step. 4-bit weights are about ¼ the bytes of bf16, so each step finishes in about half the time (8.15 → 4.0 ms). It isn't a full 4× because the embedding and LM head stay in 16-bit, and the KV cache and per-step overhead don't shrink. This confirms the bandwidth model from section 07.</div>
+      <div class="callout" style="margin-top:0;border-left-color:var(--series-2)"><b>Why FP8 ≈ INT8 here.</b> The A10G is an Ampere GPU and has no FP8 tensor cores. vLLM runs FP8 checkpoints on it as weight-only (8-bit weights, 16-bit math), the same work as GPTQ-Int8, so both land at about 5.3 ms. On an L40S or H100, FP8 would also speed up the math. TTFT barely changes across formats (about 22–26 ms at 2048 tokens) because the shared prefix is cached.</div>
+    </div>
+  </div>
+
+  <div class="card pad" style="margin-top:16px">
+    <h3>Environment problems you hit, and the fixes</h3>
+    <div class="tablewrap"><table>
+      <tr><th>Problem</th><th>Fix used</th><th>For next time</th></tr>
+      <tr><td>The root disk was only about 8 GB</td><td>Formatted and mounted the instance's NVMe at <code>/mnt/data</code> (412 GB) for the venv, HF cache and pip cache</td><td>That NVMe is <b>instance store</b>: its contents are erased on stop/start. Keep results in git, or use a larger EBS root volume (100 GB+)</td></tr>
+      <tr><td>No NVIDIA driver on the AMI</td><td><code>nvidia-driver-580</code> + reboot</td><td>Use the Deep Learning Base OSS Nvidia Driver AMI to skip this</td></tr>
+      <tr><td>FlashInfer sampler JIT failed (CUDA header mismatch)</td><td><code>VLLM_USE_FLASHINFER_SAMPLER=0</code>, <code>CUDA_HOME=/usr/local/cuda</code> symlinked to pip's <code>nvidia/cu13</code></td><td>Add both to <code>serve.sh</code> or a <code>.env</code> so the setup is reproducible</td></tr>
+      <tr><td><code>nvidia-smi</code> showed 20,435 MiB used with the server idle</td><td>None needed: this is the reserved pool, not a leak</td><td>Watch <b>KV %</b> and <b>waiting</b> instead</td></tr>
+    </table></div>
+  </div>
+</section>
+
 <!-- RUNBOOK -->
 <section id="run">
-  <div class="eyebrow">11 · Runbook</div>
+  <div class="eyebrow">12 · Runbook</div>
   <h2>Commands, in order</h2>
   <div class="grid g2" style="margin-top:20px">
     <div class="card pad" id="runbook-a"></div>
     <div class="card pad" id="runbook-b"></div>
   </div>
   <div class="card pad" style="margin-top:16px">
-    <h3>Things to try with your first results</h3>
+    <h3>Questions from the first run, answered</h3>
     <div class="grid g3" style="margin-top:10px">
-      <div><b>Cost of prefill</b><p class="small muted">Compare TTFT at input 128 vs 2048 with C = 1.</p></div>
-      <div><b>Cost of batching</b><p class="small muted">Compare TPOT at C = 1 vs 64. It should rise only a little while tok/s rises a lot.</p></div>
-      <div><b>Saturation point</b><p class="small muted">Find where tok/s stops rising and <code>waiting</code> becomes greater than 0.</p></div>
-      <div><b>Check the decode floor</b><p class="small muted">Is TPOT at C = 1 close to the calculator's decode floor? If it's much higher, overhead is dominating.</p></div>
-      <div><b>Prefix caching</b><p class="small muted">Restart with <code>--no-enable-prefix-caching</code>. Results should be unchanged, because the prompts are random.</p></div>
-      <div><b>Bigger model</b><p class="small muted">Rerun with <code>MODEL=Qwen/Qwen2.5-7B-Instruct</code>. KV capacity drops to about 1/6.</p></div>
+      <div><span class="answered">✓ ANSWERED</span><br><b>Cost of prefill</b><p class="small muted">TTFT at C = 1 grows from 21 ms (128-token prompt) to 46 ms (512) to 136 ms (2048).</p></div>
+      <div><span class="answered">✓ ANSWERED</span><br><b>Cost of batching</b><p class="small muted">At 128/128, TPOT goes from 8.15 to 12.31 ms (1.5×) while throughput goes from 121 to 4,087 tok/s (34×).</p></div>
+      <div><span class="answered">✓ ANSWERED</span><br><b>Saturation point</b><p class="small muted">Requests start waiting at C = 64 for short prompts and at C = 4–16 for 2048-token prompts, where throughput levels off at about 740 tok/s.</p></div>
+      <div><span class="answered">✓ ANSWERED</span><br><b>Check the decode floor</b><p class="small muted">Measured 8.15 ms against a 5.1 ms floor. About 3 ms per step goes to KV reads, sampling and overhead.</p></div>
+      <div><span class="answered">✓ ANSWERED</span><br><b>Prefix caching</b><p class="small muted">With fixed prompts and a shared prefix, 2048-token TTFT drops from 123 to 26 ms and requests/s at C = 64 rises 3.3×. See the caveat about the no-prefix run.</p></div>
+      <div><span class="answered" style="color:var(--act)">NEXT</span><br><b>Bigger model</b><p class="small muted">Rerun with <code>MODEL=Qwen/Qwen2.5-7B-Instruct</code>. KV capacity drops to about 1/6 (about 90k tokens), so KV % and preemption become the limit rather than compute.</p></div>
     </div>
   </div>
 </section>
@@ -683,11 +807,23 @@ const fmt = (n, d = 0) => n.toLocaleString(undefined, { maximumFractionDigits: d
     let cur = null; secs.forEach(s => { if (s.offsetTop <= y) cur = s.id; });
     links.forEach(a => {
       const on = a.getAttribute('href') === '#' + cur;
-      if (on && !a.classList.contains('on')) a.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      if (on && !a.classList.contains('on')) {
+        // Scroll only the nav strip sideways; scrollIntoView would also scroll the page and fight the user's scrolling.
+        const bar = a.parentElement, l = a.offsetLeft - bar.offsetLeft, r = l + a.offsetWidth;
+        if (l < bar.scrollLeft) bar.scrollLeft = l - 8;
+        else if (r > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = r - bar.clientWidth + 8;
+      }
       a.classList.toggle('on', on);
     });
   };
   addEventListener('scroll', update, { passive: true }); update();
+  // Scroll in JS instead of relying on #hash navigation, which some embedded viewers block.
+  document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if (!t) return;
+    e.preventDefault();
+    scrollTo({ top: t.getBoundingClientRect().top + scrollY - 64, behavior: 'smooth' });
+  }));
 })();
 
 function cmdBox(text) {
@@ -713,9 +849,20 @@ const FILES = [
   { d: 2, name: 'bench.py', where: 'ec2', run: 'python benchmark/bench.py --tag qwen1.5b-a10g', purpose: 'The baseline benchmark. Sweeps prompt length × output length × concurrency against the live server and records latency, throughput, GPU and KV-cache data for each configuration.', points: ['make_prompt(): random words plus a unique hex prefix, so the prefix cache can\'t help', 'run_one(): one streaming request; measures TTFT, e2e and token counts from the usage chunk', 'run_config(): C async workers pulling from a queue (closed-loop load)', 'Sampler: background task polling nvidia-smi and /metrics every 0.5 s', 'summarize(): p50/p99, tok/s, peak KV %, running/waiting per config', 'Skips configs that exceed max_model_len'], io: ['--input-lens, --output-lens, --concurrency, --num-requests, --quick, --tag', 'results/<ts>_<tag>/ summary.csv, requests.jsonl, gpu_samples.jsonl, env.json'] },
   { d: 2, name: 'summarize.py', where: 'both', run: 'python benchmark/summarize.py results/*_qwen1.5b-a10g', purpose: 'Prints one or more runs as Markdown tables with model, vLLM version and GPU in the header. Pass several run folders to compare them.', io: ['results/<run>/summary.csv + env.json', 'Markdown on stdout'] },
   { d: 1, name: 'architecture-notes/', dir: true },
-  { d: 2, name: 'NOTES.md', where: 'docs', purpose: 'Your notes. Questions to answer, a request-path table to fill in with source links, and space for benchmark observations and startup log highlights.' },
+  { d: 2, name: 'NOTES.md', where: 'docs', purpose: 'Your notes for this stage, now filled in: setup, startup log numbers, benchmark observations, the completed request-path table, and the prefix vs no-prefix summary.' },
   { d: 2, name: 'how-vllm-serving-works.md', where: 'docs', purpose: 'Reference: config sources, startup, the path of one request through the engine, why GPUs are fast at this, CPU-only serving, and a deployment checklist.' },
-  { d: 1, name: 'results/', dir: true, note: 'one folder per run' },
+  { d: 1, name: 'experiments/', dir: true },
+  { d: 2, name: 'prefix_quant/', dir: true },
+  { d: 3, name: 'build_prompts.py', where: 'ec2', run: 'python experiments/prefix_quant/build_prompts.py', purpose: 'Builds fixed prompt banks with the Qwen tokenizer: `prompts_<size>.jsonl`, where every prompt starts with the same 64-token policy text, and `prompts_noprefix_<size>.jsonl`, where each prompt starts with a unique document. Sizes are 128/512/1024/2048, 256 prompts each.', io: ['transformers tokenizer', 'prompts/*.jsonl, shared_prefix.txt, manifest.json (not committed)'] },
+  { d: 3, name: 'bench_prefix_quant.py', where: 'ec2', run: 'python experiments/prefix_quant/bench_prefix_quant.py --prompt-mode prefix --quant-tag bf16', purpose: 'A version of bench.py that sends prompts from the fixed banks instead of random text. It also reads `prefix_cache_queries_total` / `prefix_cache_hits_total` from /metrics before and after each config to compute the prefix-cache hit rate.', points: ['--prompt-mode prefix | noprefix', 'Reports ttft_first vs ttft_rest: the first request builds the cached prefix, later ones reuse it', 'Prompts are picked with prompts[i % len] from index 0 in every config, so earlier configs leave prompts in the cache (see the Results caveat)'], io: ['--input-sizes, --output-lens, --concurrency, --quant-tag', 'results/<dir>/<ts>_<tag>/summary.csv + env.json'] },
+  { d: 3, name: 'run_baseline_prefix_compare.sh', where: 'ec2', run: 'bash experiments/prefix_quant/run_baseline_prefix_compare.sh', purpose: 'Re-runs the full 24-config baseline sweep twice on bf16, once with shared-prefix prompts and once with no-prefix prompts, then joins the two into compare_prefix_vs_noprefix.csv.', io: ['HF_HOME, CUDA_HOME, VLLM_USE_FLASHINFER_SAMPLER=0', 'results/baseline_prefix_compare/'] },
+  { d: 3, name: 'run_experiment.sh', where: 'ec2', run: 'bash experiments/prefix_quant/run_experiment.sh', purpose: 'Quantization study. For each of bf16, AWQ, GPTQ-Int4, GPTQ-Int8 and FP8 it restarts `vllm serve` with that checkpoint, warms the shared prefix, and sweeps 512/1024/2048 × 128/256 × C 1/8/32. `QUICK=1` runs a smaller sweep.', io: ['variant list in the script', 'results/prefix_quant_experiment/<ts>_<quant>/'] },
+  { d: 3, name: 'write_report.py', where: 'both', run: 'python experiments/prefix_quant/write_report.py --results-root results/prefix_quant_experiment', purpose: 'Combines every variant\'s summary into aggregate_summary.csv and writes REPORT_PREFIX_QUANT.md.', io: ['results/prefix_quant_experiment/*/summary.csv', 'REPORT_PREFIX_QUANT.md'] },
+  { d: 1, name: 'results/', dir: true },
+  { d: 2, name: 'REPORT.md', where: 'docs', purpose: 'The full write-up of the Stage 0 run: environment problems and fixes, startup memory, host CPU/GPU usage, all 24 baseline configs, the prefix comparison, and takeaways for later stages. Section 11 of this page charts its data.' },
+  { d: 2, name: '20261005_105831_qwen1.5b-a10g/', where: 'docs', purpose: 'The original random-prompt baseline from `bench.py`: summary.csv (24 rows), SUMMARY.md (Markdown table) and env.json (vLLM 0.31.0, A10G, arguments used). This is the baseline every later stage is compared against.' },
+  { d: 2, name: 'baseline_prefix_compare/', where: 'docs', purpose: 'The same sweep with shared-prefix and no-prefix prompts: two run folders plus `compare_prefix_vs_noprefix.csv` side by side.' },
+  { d: 2, name: 'prefix_quant_experiment/', where: 'docs', purpose: 'Five quantization runs (bf16, AWQ, GPTQ-Int4, GPTQ-Int8, FP8), aggregate_summary.csv (90 rows) and REPORT_PREFIX_QUANT.md.' },
   { d: 1, name: 'stage0-explainer.html', where: 'docs', purpose: 'This page.' },
 ];
 const WHERE = { ec2: ['cpu', 'EC2'], both: ['lap', 'either'], docs: ['', 'docs'] };
@@ -789,6 +936,10 @@ function calc() {
     [`full ${fmt(len)}-token requests at once`, kv > 0 ? (conc >= 1 ? fmt(conc, conc < 10 ? 1 : 0) : `<span class="warn">${fmt(conc, 2)}</span>`) : '<span class="warn">0</span>'],
     ['decode floor (1 request)', `${fmt(floor, 1)} ms <span class="small muted">≈${fmt(1000 / floor)} tok/s</span>`],
   ].map(([k, v]) => `<div class="kpi"><div class="big" style="font-size:1.2rem">${v}</div><span>${k}</span></div>`).join('');
+  const isRun = g.n.startsWith('A10G') && m.n.startsWith('Qwen2.5-1.5B') && wq === 2 && kvq === 2 && Math.abs(util - 0.9) < 0.005;
+  $('#m-measured').innerHTML = isRun
+    ? `<b>Matches your measured run.</b> The vLLM log reported 591,088 KV tokens and 72.15× concurrency at 8,192 tokens; this estimate is ${fmt(kvTokens)} tokens (${fmt((kvTokens / 591088 - 1) * 100, 1)}% off).`
+    : `<b>Your measured run:</b> A10G, Qwen2.5-1.5B bf16, utilization 0.90 → 591,088 KV tokens. Select those settings to compare with this estimate.`;
   $('#m-formula').textContent = `KV/token = 2 × ${m.L} layers × ${m.kvh} kv_heads × ${m.hd} head_dim × ${kvq} B = ${fmt(perTok)} B   |   KV pool = ${fmt(g.mem)}×${util.toFixed(2)} − ${fmt(weights, 1)} − ${act} = ${fmt(Math.max(kv, 0), 1)} GB`;
 }
 ['#m-gpu', '#m-model', '#m-wq', '#m-kvq', '#m-util', '#m-len'].forEach(s => $(s).addEventListener('input', calc));
@@ -1011,35 +1162,228 @@ $('#s-play').onclick = () => {
 };
 runSim();
 
-/* ---------------- batching toy model ---------------- */
+const BASE_KEYS = ["input_len", "output_len", "concurrency", "ttft_p50_ms", "ttft_p99_ms", "tpot_p50_ms", "output_tok_per_s", "req_per_s", "e2e_p50_s", "gpu_util_mean_pct", "kv_cache_peak_pct", "running_peak", "waiting_peak"];
+const BASE_ROWS = [[128.0, 128.0, 1.0, 21.31, 21.92, 8.15, 121.1, 0.946, 1.056, 97.9, 0.0, 1.0, 0.0], [128.0, 128.0, 4.0, 46.46, 53.88, 8.24, 467.3, 3.651, 1.093, 100.0, 0.2, 4.0, 0.0], [128.0, 128.0, 16.0, 153.81, 182.38, 8.78, 1606.7, 12.553, 1.272, 96.2, 0.8, 16.0, 0.0], [128.0, 128.0, 64.0, 452.57, 656.31, 12.31, 4087.4, 31.933, 1.997, 87.7, 2.9, 64.0, 18.0], [128.0, 512.0, 1.0, 21.19, 24.57, 8.16, 122.2, 0.239, 4.188, 98.8, 0.1, 1.0, 0.0], [128.0, 512.0, 4.0, 46.3, 54.17, 8.26, 479.7, 0.937, 4.267, 99.6, 0.4, 4.0, 0.0], [128.0, 512.0, 16.0, 150.49, 189.87, 8.85, 1750.1, 3.418, 4.679, 100.0, 1.8, 16.0, 0.0], [128.0, 512.0, 64.0, 430.75, 644.14, 11.39, 5238.6, 10.232, 6.251, 100.0, 7.3, 64.0, 23.0], [512.0, 128.0, 1.0, 45.69, 52.78, 8.15, 118.2, 0.923, 1.081, 100.0, 0.1, 1.0, 0.0], [512.0, 128.0, 4.0, 122.53, 135.71, 8.28, 434.8, 3.397, 1.175, 100.0, 0.5, 4.0, 0.0], [512.0, 128.0, 16.0, 318.84, 498.8, 10.03, 1274.2, 9.955, 1.593, 96.1, 1.7, 16.0, 11.0], [512.0, 128.0, 64.0, 1067.88, 1994.12, 18.39, 2372.8, 18.537, 3.425, 95.7, 7.2, 64.0, 54.0], [512.0, 512.0, 1.0, 45.65, 46.57, 8.16, 121.4, 0.237, 4.216, 99.7, 0.2, 1.0, 0.0], [512.0, 512.0, 4.0, 122.33, 136.71, 8.32, 468.2, 0.914, 4.371, 99.4, 0.7, 4.0, 0.0], [512.0, 512.0, 16.0, 291.13, 494.62, 9.48, 1586.1, 3.098, 5.156, 100.0, 2.8, 16.0, 0.0], [512.0, 512.0, 64.0, 1080.06, 2017.03, 13.96, 3985.4, 7.784, 8.201, 100.0, 11.4, 64.0, 42.0], [2048.0, 128.0, 1.0, 135.61, 136.09, 8.19, 108.8, 0.85, 1.176, 98.7, 0.4, 1.0, 0.0], [2048.0, 128.0, 4.0, 397.75, 472.95, 9.14, 327.4, 2.558, 1.559, 100.0, 1.5, 4.0, 2.0], [2048.0, 128.0, 16.0, 578.84, 1867.72, 19.85, 654.8, 5.116, 3.101, 100.0, 5.9, 16.0, 12.0], [2048.0, 128.0, 64.0, 906.17, 8204.29, 80.91, 742.6, 5.802, 11.19, 98.8, 23.6, 64.0, 58.0], [2048.0, 512.0, 1.0, 135.46, 139.03, 8.2, 118.3, 0.231, 4.328, 100.0, 0.4, 1.0, 0.0], [2048.0, 512.0, 4.0, 397.34, 474.76, 8.85, 415.8, 0.812, 4.921, 100.0, 1.7, 4.0, 1.0], [2048.0, 512.0, 16.0, 579.98, 1871.75, 12.92, 1136.6, 2.22, 7.182, 98.7, 7.0, 16.0, 10.0], [2048.0, 512.0, 64.0, 806.52, 8208.66, 34.23, 1806.1, 3.528, 18.384, 100.0, 27.7, 64.0, 57.0]];
+const CMP_KEYS = ["input_target", "output_len", "concurrency", "prefix_qps", "noprefix_qps", "prefix_tok_s", "noprefix_tok_s", "prefix_ttft_p50_ms", "noprefix_ttft_p50_ms", "prefix_tpot_p50_ms", "noprefix_tpot_p50_ms", "prefix_hit_pct", "noprefix_hit_pct"];
+const CMP_ROWS = [[128.0, 128.0, 1.0, 0.95, 0.945, 121.6, 120.9, 17.55, 20.91, 8.15, 8.15, 80.0, 10.21], [128.0, 128.0, 4.0, 3.712, 3.683, 475.1, 471.5, 30.28, 30.37, 8.23, 8.24, 85.36, 51.04], [128.0, 128.0, 16.0, 13.771, 13.066, 1762.7, 1672.4, 68.6, 87.31, 8.6, 8.67, 82.94, 30.62], [128.0, 128.0, 64.0, 41.114, 35.029, 5262.6, 4483.7, 192.75, 347.88, 10.69, 11.49, 83.29, 30.63], [128.0, 512.0, 1.0, 0.239, 0.239, 122.4, 122.4, 17.09, 17.51, 8.15, 8.15, 91.23, 91.87], [128.0, 512.0, 4.0, 0.943, 0.942, 482.7, 482.2, 29.71, 30.2, 8.24, 8.25, 91.01, 91.87], [128.0, 512.0, 16.0, 3.533, 3.51, 1809.1, 1797.2, 60.58, 57.71, 8.73, 8.8, 91.22, 91.87], [128.0, 512.0, 64.0, 11.252, 11.089, 5761.0, 5677.7, 175.16, 174.48, 10.78, 10.93, 91.22, 91.9], [512.0, 128.0, 1.0, 0.946, 0.933, 121.1, 119.4, 19.3, 37.05, 8.15, 8.15, 82.87, 19.61], [512.0, 128.0, 4.0, 3.698, 3.565, 473.3, 456.3, 30.26, 40.43, 8.25, 8.35, 95.46, 58.96], [512.0, 128.0, 16.0, 13.38, 11.159, 1712.7, 1428.3, 66.64, 172.96, 8.84, 9.67, 95.31, 39.56], [512.0, 128.0, 64.0, 37.792, 23.415, 4837.4, 2997.1, 207.44, 675.93, 11.56, 15.0, 96.01, 37.65], [512.0, 512.0, 1.0, 0.239, 0.239, 122.3, 122.2, 18.83, 19.2, 8.16, 8.16, 98.18, 97.66], [512.0, 512.0, 4.0, 0.94, 0.935, 481.4, 478.5, 31.9, 30.32, 8.26, 8.31, 98.25, 97.71], [512.0, 512.0, 16.0, 3.43, 3.358, 1756.1, 1719.5, 61.74, 65.22, 9.0, 9.19, 98.24, 97.8], [512.0, 512.0, 64.0, 10.309, 9.861, 5278.4, 5048.6, 192.87, 193.0, 11.74, 12.3, 98.24, 97.98], [2048.0, 128.0, 1.0, 0.93, 0.863, 119.0, 110.5, 25.56, 123.47, 8.19, 8.19, 88.75, 8.29], [2048.0, 128.0, 4.0, 3.58, 2.994, 458.3, 383.3, 42.31, 90.95, 8.45, 8.73, 98.9, 52.94], [2048.0, 128.0, 16.0, 11.899, 6.232, 1523.0, 797.7, 65.82, 349.93, 9.94, 19.56, 98.8, 32.2], [2048.0, 128.0, 64.0, 27.223, 8.288, 3484.5, 1060.8, 211.67, 556.97, 16.52, 65.35, 98.97, 38.04], [2048.0, 512.0, 1.0, 0.237, 0.237, 121.5, 121.4, 24.94, 24.92, 8.2, 8.2, 99.52, 99.46], [2048.0, 512.0, 4.0, 0.916, 0.89, 469.1, 455.7, 40.5, 40.64, 8.46, 8.71, 99.53, 99.51], [2048.0, 512.0, 16.0, 3.142, 2.922, 1608.9, 1496.2, 68.53, 70.49, 9.8, 10.55, 99.55, 99.52], [2048.0, 512.0, 64.0, 7.7, 4.05, 3942.5, 2073.5, 168.86, 788.56, 15.89, 31.79, 99.55, 25.42]];
+const Q_KEYS = ["input_target", "output_len", "concurrency", "req_per_s", "output_tok_per_s", "ttft_rest_p50_ms", "tpot_p50_ms"];
+const Q_ROWS = {"bf16": [[512.0, 128.0, 1.0, 0.948, 121.4, 19.41, 8.15], [512.0, 128.0, 8.0, 7.173, 918.2, 39.44, 8.44], [512.0, 128.0, 32.0, 23.251, 2976.1, 104.75, 9.84], [512.0, 256.0, 1.0, 0.477, 122.0, 19.01, 8.15], [512.0, 256.0, 8.0, 3.598, 921.1, 44.06, 8.53], [512.0, 256.0, 32.0, 12.024, 3078.3, 102.84, 9.95], [1024.0, 128.0, 1.0, 0.945, 120.9, 21.61, 8.16], [1024.0, 128.0, 8.0, 6.956, 890.4, 48.4, 8.63], [1024.0, 128.0, 32.0, 21.261, 2721.4, 111.75, 10.57], [1024.0, 256.0, 1.0, 0.476, 121.7, 21.09, 8.16], [1024.0, 256.0, 8.0, 3.545, 907.5, 47.11, 8.65], [1024.0, 256.0, 32.0, 11.169, 2859.3, 133.3, 10.55], [2048.0, 128.0, 1.0, 0.937, 120.0, 25.52, 8.19], [2048.0, 128.0, 8.0, 6.669, 853.6, 44.18, 9.02], [2048.0, 128.0, 32.0, 18.286, 2340.6, 167.23, 12.04], [2048.0, 256.0, 1.0, 0.473, 121.1, 25.17, 8.19], [2048.0, 256.0, 8.0, 3.404, 871.5, 50.72, 8.99], [2048.0, 256.0, 32.0, 9.743, 2494.3, 177.77, 11.97]], "awq": [[512.0, 128.0, 1.0, 1.879, 240.5, 16.98, 4.05], [512.0, 128.0, 8.0, 14.203, 1818.0, 41.29, 4.1], [512.0, 128.0, 32.0, 37.464, 4795.4, 114.14, 5.75], [512.0, 256.0, 1.0, 0.95, 243.2, 16.95, 4.06], [512.0, 256.0, 8.0, 7.196, 1842.1, 44.2, 4.18], [512.0, 256.0, 32.0, 20.027, 5126.9, 103.87, 5.79], [1024.0, 128.0, 1.0, 1.865, 238.8, 18.2, 4.07], [1024.0, 128.0, 8.0, 13.431, 1719.2, 50.06, 4.29], [1024.0, 128.0, 32.0, 33.888, 4337.6, 113.11, 6.42], [1024.0, 256.0, 1.0, 0.945, 242.0, 18.3, 4.08], [1024.0, 256.0, 8.0, 6.982, 1787.4, 48.95, 4.29], [1024.0, 256.0, 32.0, 18.194, 4657.5, 120.63, 6.32], [2048.0, 128.0, 1.0, 1.834, 234.8, 22.04, 4.11], [2048.0, 128.0, 8.0, 12.327, 1577.8, 55.88, 4.66], [2048.0, 128.0, 32.0, 26.035, 3332.4, 187.56, 7.87], [2048.0, 256.0, 1.0, 0.935, 239.4, 21.16, 4.11], [2048.0, 256.0, 8.0, 6.444, 1649.8, 55.69, 4.63], [2048.0, 256.0, 32.0, 14.836, 3798.1, 151.84, 7.71]], "gptq-int4": [[512.0, 128.0, 1.0, 1.9, 243.2, 16.9, 4.01], [512.0, 128.0, 8.0, 14.322, 1833.3, 41.44, 4.05], [512.0, 128.0, 32.0, 37.968, 4859.8, 110.1, 5.64], [512.0, 256.0, 1.0, 0.961, 246.0, 16.87, 4.02], [512.0, 256.0, 8.0, 7.266, 1860.2, 43.54, 4.14], [512.0, 256.0, 32.0, 20.395, 5221.1, 97.68, 5.7], [1024.0, 128.0, 1.0, 1.886, 241.4, 18.37, 4.02], [1024.0, 128.0, 8.0, 13.588, 1739.3, 49.23, 4.24], [1024.0, 128.0, 32.0, 33.23, 4253.4, 114.74, 6.52], [1024.0, 256.0, 1.0, 0.956, 244.7, 18.52, 4.03], [1024.0, 256.0, 8.0, 7.064, 1808.4, 45.8, 4.26], [1024.0, 256.0, 32.0, 18.281, 4680.0, 120.4, 6.28], [2048.0, 128.0, 1.0, 1.854, 237.3, 22.06, 4.06], [2048.0, 128.0, 8.0, 12.457, 1594.5, 55.54, 4.6], [2048.0, 128.0, 32.0, 26.444, 3384.8, 172.77, 7.87], [2048.0, 256.0, 1.0, 0.945, 242.0, 21.03, 4.07], [2048.0, 256.0, 8.0, 6.478, 1658.4, 58.82, 4.6], [2048.0, 256.0, 32.0, 14.819, 3793.7, 149.35, 7.72]], "gptq-int8": [[512.0, 128.0, 1.0, 1.461, 187.0, 16.95, 5.25], [512.0, 128.0, 8.0, 11.143, 1426.3, 43.62, 5.29], [512.0, 128.0, 32.0, 31.555, 4039.0, 118.45, 6.88], [512.0, 256.0, 1.0, 0.737, 188.6, 16.92, 5.26], [512.0, 256.0, 8.0, 5.643, 1444.7, 40.66, 5.39], [512.0, 256.0, 32.0, 16.839, 4310.8, 103.97, 6.97], [1024.0, 128.0, 1.0, 1.452, 185.8, 18.91, 5.27], [1024.0, 128.0, 8.0, 10.717, 1371.7, 45.84, 5.5], [1024.0, 128.0, 32.0, 28.716, 3675.6, 123.53, 7.52], [1024.0, 256.0, 1.0, 0.734, 187.9, 18.11, 5.27], [1024.0, 256.0, 8.0, 5.491, 1405.8, 49.9, 5.52], [1024.0, 256.0, 32.0, 15.452, 3955.7, 118.9, 7.56], [2048.0, 128.0, 1.0, 1.434, 183.5, 22.92, 5.3], [2048.0, 128.0, 8.0, 10.009, 1281.2, 50.0, 5.87], [2048.0, 128.0, 32.0, 23.144, 2962.4, 170.8, 9.16], [2048.0, 256.0, 1.0, 0.728, 186.2, 21.93, 5.3], [2048.0, 256.0, 8.0, 5.146, 1317.4, 54.89, 5.85], [2048.0, 256.0, 32.0, 12.826, 3283.4, 157.15, 8.99]], "fp8": [[512.0, 128.0, 1.0, 1.449, 185.5, 17.24, 5.3], [512.0, 128.0, 8.0, 11.054, 1414.9, 42.2, 5.35], [512.0, 128.0, 32.0, 33.109, 4238.0, 105.02, 6.61], [512.0, 256.0, 1.0, 0.73, 186.9, 16.97, 5.3], [512.0, 256.0, 8.0, 5.594, 1432.2, 40.9, 5.44], [512.0, 256.0, 32.0, 17.404, 4455.3, 114.26, 6.7], [1024.0, 128.0, 1.0, 1.44, 184.3, 18.94, 5.31], [1024.0, 128.0, 8.0, 10.591, 1355.6, 50.75, 5.54], [1024.0, 128.0, 32.0, 29.768, 3810.3, 127.84, 7.26], [1024.0, 256.0, 1.0, 0.727, 186.2, 18.7, 5.32], [1024.0, 256.0, 8.0, 5.46, 1397.8, 45.42, 5.56], [1024.0, 256.0, 32.0, 15.816, 4048.8, 129.02, 7.27], [2048.0, 128.0, 1.0, 1.423, 182.1, 23.0, 5.34], [2048.0, 128.0, 8.0, 9.866, 1262.8, 56.56, 5.9], [2048.0, 128.0, 32.0, 23.727, 3037.0, 164.73, 8.89], [2048.0, 256.0, 1.0, 0.721, 184.7, 22.18, 5.35], [2048.0, 256.0, 8.0, 5.104, 1306.7, 61.5, 5.9], [2048.0, 256.0, 32.0, 13.201, 3379.5, 153.15, 8.68]]};
+
+/* ---------------- measured results ---------------- */
+const rows = (keys, list) => list.map(v => Object.fromEntries(keys.map((k, i) => [k, v[i]])));
+const BASE = rows(BASE_KEYS, BASE_ROWS);
+const CMP = rows(CMP_KEYS, CMP_ROWS);
+const QUANT = Object.fromEntries(Object.entries(Q_ROWS).map(([k, v]) => [k, rows(Q_KEYS, v)]));
+const CONCS = [1, 4, 16, 64];
+const PAIRS = [[128, 128], [128, 512], [512, 128], [512, 512], [2048, 128], [2048, 512]];
+const baseRow = (i, o, c) => BASE.find(r => r.input_len === i && r.output_len === o && r.concurrency === c);
+const METRICS = {
+  ttft_p50_ms: { label: 'TTFT p50 (ms)', d: 0, note: 'queueing + prefill' },
+  tpot_p50_ms: { label: 'TPOT p50 (ms)', d: 1, note: 'one engine step' },
+  output_tok_per_s: { label: 'Output tok/s', d: 0, note: 'system throughput' },
+  req_per_s: { label: 'Requests/s', d: 2, note: 'completed per second' },
+  waiting_peak: { label: 'Waiting peak', d: 0, note: 'queued requests' },
+  kv_cache_peak_pct: { label: 'KV cache peak %', d: 1, note: 'pool in use' },
+  ttft_p99_ms: { label: 'TTFT p99 (ms)', d: 0, note: 'tail latency' },
+};
+
+/* tooltip */
+const tip = el('div', { class: 'tip', role: 'tooltip' }); document.body.appendChild(tip);
+function showTip(ev, html) { tip.innerHTML = html; tip.style.opacity = 1; moveTip(ev); }
+function moveTip(ev) {
+  const r = tip.getBoundingClientRect();
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - 14;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function hideTip() { tip.style.opacity = 0; }
+function bindTip(node, html) {
+  node.addEventListener('mouseenter', e => showTip(e, html));
+  node.addEventListener('mousemove', moveTip);
+  node.addEventListener('mouseleave', hideTip);
+}
+
+function niceMax(v) {
+  if (v <= 0) return 1;
+  const p = 10 ** Math.floor(Math.log10(v)), n = v / p;
+  return [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find(s => s >= n) * p;
+}
+/* bar path with 4px rounded top, square base on the baseline */
+function barPath(x, y, w, h, r = 4) {
+  r = Math.min(r, w / 2, h);
+  return `M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h} Z`;
+}
+/* grouped vertical bar chart. series: [{name, color, values}] */
+function barChart(svg, { cats, series, d = 0, unit = '', catLabel = c => c, w = 460, h = 210, highlight = -1 }) {
+  svg.innerHTML = ''; svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  const L = 46, R = 8, T = 16, B = 30, max = niceMax(Math.max(...series.flatMap(s => s.values)) * 1.05);
+  const y = v => T + (h - T - B) * (1 - v / max);
+  for (let k = 0; k <= 4; k++) {
+    const v = max * k / 4, yy = y(v);
+    svg.appendChild(svgEl('line', { x1: L, x2: w - R, y1: yy, y2: yy, stroke: 'var(--border)', 'stroke-width': 1 }));
+    const t = svgEl('text', { x: L - 6, y: yy + 3, 'text-anchor': 'end', 'font-size': 10, class: 't-muted' }); t.textContent = fmt(v, v < 10 && max < 10 ? 1 : 0); svg.appendChild(t);
+  }
+  const gw = (w - L - R) / cats.length, gap = 2;
+  const bw = Math.min(34, (gw * 0.72 - gap * (series.length - 1)) / series.length);
+  cats.forEach((c, i) => {
+    const gx = L + gw * i + (gw - (bw * series.length + gap * (series.length - 1))) / 2;
+    series.forEach((s, j) => {
+      const v = s.values[i], x = gx + j * (bw + gap), yy = y(v), bh = Math.max(1, h - B - yy);
+      svg.appendChild(svgEl('path', { d: barPath(x, h - B - bh, bw, bh), fill: s.color, opacity: highlight >= 0 && highlight !== i ? 0.35 : 1 }));
+      const lab = svgEl('text', { x: x + bw / 2, y: h - B - bh - 4, 'text-anchor': 'middle', 'font-size': 9.5, class: 't-text', 'font-weight': 600 });
+      lab.textContent = fmt(v, d); svg.appendChild(lab);
+      const hit = svgEl('rect', { x: x - gap, y: T, width: bw + gap * 2, height: h - T - B, fill: 'transparent' });
+      bindTip(hit, `<b>${catLabel(c)}</b>${series.length > 1 ? ' · ' + s.name : ''}<br>${fmt(v, Math.max(d, 1))}${unit}`);
+      svg.appendChild(hit);
+    });
+    const xl = svgEl('text', { x: L + gw * i + gw / 2, y: h - B + 16, 'text-anchor': 'middle', 'font-size': 10.5, class: 't-muted' });
+    xl.textContent = catLabel(c); svg.appendChild(xl);
+  });
+  svg.appendChild(svgEl('line', { x1: L, x2: w - R, y1: h - B, y2: h - B, stroke: 'var(--faint)', 'stroke-width': 1 }));
+}
+
+/* startup memory bar (measured) */
+(() => {
+  const total = 23028 / 1024, reserved = total * 0.9, w = 2.98, kv = 15.78, other = reserved - w - kv;
+  const bar = $('#r-membar'); const pct = x => x / total * 100 + '%';
+  [[w, 'var(--weights)', '2.98'], [other, 'var(--act)', ''], [kv, 'var(--kv)', 'KV 15.78 GiB']].forEach(([v, c, t]) => {
+    const d = el('div'); d.style.width = pct(v); d.style.background = c; d.textContent = t; bar.appendChild(d);
+  });
+})();
+
+/* explorer */
+let pairIdx = 0;
+const MINI = ['ttft_p50_ms', 'tpot_p50_ms', 'output_tok_per_s', 'waiting_peak'];
+(() => {
+  const seg = $('#r-pairs');
+  PAIRS.forEach(([i, o], k) => {
+    const b = el('button', { role: 'tab', 'aria-selected': k === 0 }, `${i} / ${o}`);
+    b.onclick = () => selectPair(k); seg.appendChild(b);
+  });
+  MINI.forEach(m => {
+    const box = el('div');
+    box.innerHTML = `<div class="charttitle">${METRICS[m].label} <span class="muted" style="font-weight:400">· ${METRICS[m].note}</span></div><svg class="chart" id="mini-${m}"></svg>`;
+    $('#r-minis').appendChild(box);
+  });
+  Object.entries(METRICS).forEach(([k, v]) => $('#r-metric').appendChild(el('option', { value: k }, v.label)));
+  $('#r-metric').value = 'output_tok_per_s';
+  $('#r-metric').addEventListener('input', drawHeat);
+})();
+function selectPair(k) {
+  pairIdx = k; const [i, o] = PAIRS[k];
+  document.querySelectorAll('#r-pairs button').forEach((b, j) => b.setAttribute('aria-selected', j === k));
+  MINI.forEach(m => barChart($('#mini-' + m), {
+    cats: CONCS, catLabel: c => `C=${c}`, d: METRICS[m].d, unit: m.includes('ms') ? ' ms' : '',
+    series: [{ name: METRICS[m].label, color: 'var(--series-1)', values: CONCS.map(c => baseRow(i, o, c)[m]) }],
+  }));
+  drawHeat();
+}
+function drawHeat() {
+  const m = $('#r-metric').value, M = METRICS[m];
+  const vals = BASE.map(r => r[m]), lo = Math.min(...vals), hi = Math.max(...vals);
+  const box = $('#r-heat'); box.innerHTML = '';
+  box.appendChild(el('div', { class: 'hh' }, 'input / output'));
+  CONCS.forEach(c => box.appendChild(el('div', { class: 'hh' }, `C = ${c}`)));
+  PAIRS.forEach(([i, o], k) => {
+    const lab = el('div', { class: 'hl-lab' + (k === pairIdx ? ' on' : '') }, `${i} / ${o}`);
+    lab.onclick = () => selectPair(k); box.appendChild(lab);
+    CONCS.forEach(c => {
+      const v = baseRow(i, o, c)[m], t = hi > lo ? (v - lo) / (hi - lo) : 0;
+      const cell = el('div', { class: 'hc' + (k === pairIdx ? ' on' : '') });
+      cell.style.background = `color-mix(in oklab, var(--series-1) ${Math.round(8 + t * 82)}%, var(--surface))`;
+      cell.style.color = t > 0.5 ? '#fff' : 'var(--text)';
+      cell.textContent = fmt(v, M.d);
+      cell.onclick = () => selectPair(k);
+      const r = baseRow(i, o, c);
+      bindTip(cell, `<b>in ${i} / out ${o} · C=${c}</b><br>${M.label}: ${fmt(v, Math.max(M.d, 1))}<br><span class="muted">TTFT ${fmt(r.ttft_p50_ms)} ms · TPOT ${fmt(r.tpot_p50_ms, 2)} ms<br>${fmt(r.output_tok_per_s)} tok/s · waiting ${r.waiting_peak} · KV ${r.kv_cache_peak_pct}%</span>`);
+      box.appendChild(cell);
+    });
+  });
+}
+selectPair(0);
+
+/* findings */
+(() => {
+  const F = [
+    ['Prefill sets TTFT', '21 → 46 → 136 ms', 'TTFT p50 at C = 1 for 128 / 512 / 2048-token prompts. Every prompt token has to be computed before the first output token.'],
+    ['Decode is bandwidth-bound', '8.15 ms/token', 'About 122 tok/s for one request, at every prompt length. The bandwidth floor is about 5.1 ms (3.08 GB ÷ 600 GB/s); the other ~3 ms is KV reads, sampling and per-step overhead.'],
+    ['Batching is the win', '121 → 4,087 tok/s', 'At 128/128, going from C = 1 to C = 64 gives 34× the throughput while TPOT only rises from 8.15 to 12.31 ms (1.5×). The peak was 5,239 tok/s at 128/512, C = 64.'],
+    ['Long prompts saturate first', '81 ms TPOT', 'At 2048/128, C = 64, new requests\' prefills fill the token budget, so decode steps slow down 10× and throughput stays flat at about 650–740 tok/s with 58 requests waiting.'],
+    ['Memory is not the limit (yet)', 'KV peak 27.7%', 'Even the heaviest config used under a third of the 591k-token pool. This 1.5B run is limited by compute and scheduling. A 7B model (about 1/6 of the KV capacity) would change that.'],
+    ['nvidia-smi is misleading', '20,435 MiB flat', 'GPU memory was identical in all 24 configs because vLLM reserves it at startup. GPU utilization showed about 97–100% even at C = 1, which means busy, not efficient.'],
+  ];
+  $('#r-findings').innerHTML = F.map(([t, n, p]) => `<div class="card pad"><div class="small muted" style="font-weight:600">${t}</div><div class="big" style="font-size:1.35rem;margin:4px 0 6px">${n}</div><p class="small muted" style="margin:0">${p}</p></div>`).join('');
+})();
+
+/* prefix vs no-prefix */
+(() => {
+  const ins = [128, 512, 2048];
+  const get = (i, c, k) => CMP.find(r => r.input_target === i && r.output_len === 128 && r.concurrency === c)[k];
+  barChart($('#r-px-ttft'), { cats: ins, catLabel: i => `${i} tok`, d: 0, unit: ' ms', series: [
+    { name: 'shared prefix', color: 'var(--series-1)', values: ins.map(i => get(i, 1, 'prefix_ttft_p50_ms')) },
+    { name: 'no shared prefix', color: 'var(--series-2)', values: ins.map(i => get(i, 1, 'noprefix_ttft_p50_ms')) }] });
+  barChart($('#r-px-qps'), { cats: ins, catLabel: i => `${i} tok`, d: 1, unit: ' req/s', series: [
+    { name: 'shared prefix', color: 'var(--series-1)', values: ins.map(i => get(i, 64, 'prefix_qps')) },
+    { name: 'no shared prefix', color: 'var(--series-2)', values: ins.map(i => get(i, 64, 'noprefix_qps')) }] });
+})();
+
+/* quantization */
+(() => {
+  const order = [['bf16', 'bf16'], ['gptq-int8', 'GPTQ int8'], ['fp8', 'FP8'], ['awq', 'AWQ int4'], ['gptq-int4', 'GPTQ int4']];
+  const pick = (t, i, o, c) => QUANT[t].find(r => r.input_target === i && r.output_len === o && r.concurrency === c);
+  const tpot = order.map(([t]) => pick(t, 512, 128, 1).tpot_p50_ms);
+  const peakTok = order.map(([t]) => Math.max(...QUANT[t].map(r => r.output_tok_per_s)));
+  const peakQps = order.map(([t]) => Math.max(...QUANT[t].map(r => r.req_per_s)));
+  const ttft = order.map(([t]) => pick(t, 2048, 128, 1).ttft_rest_p50_ms);
+  const names = order.map(o => o[1]);
+  barChart($('#r-q-tpot'), { cats: names, d: 2, unit: ' ms', series: [{ name: 'TPOT', color: 'var(--series-1)', values: tpot }] });
+  barChart($('#r-q-tok'), { cats: names, d: 0, unit: ' tok/s', series: [{ name: 'peak tok/s', color: 'var(--series-1)', values: peakTok }] });
+  $('#r-q-table').innerHTML = '<tr><th>Format</th><th>Model</th><th>TPOT C=1</th><th>tok/s, 1 request</th><th>Peak req/s</th><th>Peak tok/s</th><th>TTFT 2048-token prompt (cached)</th></tr>' +
+    order.map(([t, n], k) => `<tr${t === 'bf16' ? ' class="hl"' : ''}><td><b>${n}</b></td><td class="small mono">${{ bf16: 'Qwen2.5-1.5B-Instruct', awq: '…-Instruct-AWQ', 'gptq-int4': '…-GPTQ-Int4', 'gptq-int8': '…-GPTQ-Int8', fp8: 'RedHatAI/…-FP8-dynamic' }[t]}</td><td class="mono">${fmt(tpot[k], 2)} ms</td><td class="mono">${fmt(1000 / tpot[k])}</td><td class="mono">${fmt(peakQps[k], 1)}</td><td class="mono">${fmt(peakTok[k])}</td><td class="mono">${fmt(ttft[k], 1)} ms</td></tr>`).join('');
+})();
+
+/* ---------------- batching toy model (calibrated to the measured run) ---------------- */
 const BC = [1, 2, 4, 8, 16, 32, 64, 128, 256];
+// Measured, in=128 / out=128 (results/20261005_105831_qwen1.5b-a10g): C -> [TPOT p50 ms, out tok/s]
+const MEASURED_BATCH = { 1: [8.15, 121.1], 4: [8.24, 467.3], 16: [8.78, 1606.7], 64: [12.31, 4087.4] };
 function stepMs(c) {
-  const W = 3.08e9, kvTok = 28672, ctx = 1024, bw = 600e9, flops = 75e12, P = 1.54e9;
+  // ~256 tokens of context per request (178-token prompt + half of 128 outputs); 3 ms overhead calibrated so C=1 matches 8.15 ms
+  const W = 3.08e9, kvTok = 28672, ctx = 256, bw = 600e9, flops = 75e12, P = 1.54e9;
   const mem = (W + c * ctx * kvTok) / bw * 1000;
   const comp = 2 * P * c / flops * 1000;
-  return Math.max(mem, comp) + 1.5;
+  return Math.max(mem, comp) + 3.0;
+}
+function lineChart(svg, { values, measured, d, unit, w = 460, h = 190, sel }) {
+  svg.innerHTML = ''; svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  const L = 46, R = 10, T = 12, B = 30;
+  const max = niceMax(Math.max(...values, ...measured.filter(Boolean)) * 1.05);
+  const x = i => L + (w - L - R) * i / (BC.length - 1), y = v => T + (h - T - B) * (1 - v / max);
+  for (let k = 0; k <= 4; k++) {
+    const v = max * k / 4; svg.appendChild(svgEl('line', { x1: L, x2: w - R, y1: y(v), y2: y(v), stroke: 'var(--border)' }));
+    const t = svgEl('text', { x: L - 6, y: y(v) + 3, 'text-anchor': 'end', 'font-size': 10, class: 't-muted' }); t.textContent = v >= 1000 ? fmt(v / 1000, 1) + 'k' : fmt(v, 0); svg.appendChild(t);
+  }
+  BC.forEach((b, i) => { const t = svgEl('text', { x: x(i), y: h - B + 15, 'text-anchor': 'middle', 'font-size': 10, class: 't-muted' }); t.textContent = b; svg.appendChild(t); });
+  svg.appendChild(svgEl('line', { x1: x(sel), x2: x(sel), y1: T, y2: h - B, stroke: 'var(--accent)', 'stroke-dasharray': '3 3' }));
+  svg.appendChild(svgEl('polyline', { points: values.map((v, i) => `${x(i)},${y(v)}`).join(' '), fill: 'none', stroke: 'var(--faint)', 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
+  measured.forEach((v, i) => {
+    if (v == null) return;
+    svg.appendChild(svgEl('circle', { cx: x(i), cy: y(v), r: 5.5, fill: 'var(--series-1)', stroke: 'var(--surface)', 'stroke-width': 2 }));
+  });
+  BC.forEach((b, i) => {
+    const hit = svgEl('rect', { x: x(i) - 18, y: T, width: 36, height: h - T - B, fill: 'transparent' });
+    bindTip(hit, `<b>C = ${b}</b><br>model: ${fmt(values[i], d)}${unit}` + (measured[i] != null ? `<br>measured: ${fmt(measured[i], d)}${unit}` : ''));
+    svg.appendChild(hit);
+  });
+  svg.appendChild(svgEl('line', { x1: L, x2: w - R, y1: h - B, y2: h - B, stroke: 'var(--faint)' }));
 }
 function drawBatchChart() {
-  const c = BC[+$('#b-c').value]; $('#b-c-v').textContent = c;
-  const t = stepMs(c);
-  $('#b-kpis').innerHTML = [[`${fmt(t, 1)} ms`, 'TPOT (step time)'], [fmt(1000 / t), 'tok/s per request'], [fmt(c * 1000 / t), 'tok/s total']].map(([v, k]) => `<div class="kpi"><div class="big" style="font-size:1.15rem">${v}</div><span>${k}</span></div>`).join('');
-  const s = $('#b-chart'); s.innerHTML = '';
-  const X0 = 46, X1 = 434, Y0 = 186, Y1 = 18;
-  const thr = BC.map(b => b * 1000 / stepMs(b)), tp = BC.map(stepMs);
-  const maxT = Math.max(...thr) * 1.08, maxP = Math.max(...tp) * 1.15;
-  const x = i => X0 + (X1 - X0) * i / (BC.length - 1);
-  const yT = v => Y0 - (Y0 - Y1) * v / maxT, yP = v => Y0 - (Y0 - Y1) * v / maxP;
-  for (let k = 0; k <= 4; k++) { const yy = Y0 - (Y0 - Y1) * k / 4; s.appendChild(svgEl('line', { x1: X0, x2: X1, y1: yy, y2: yy, stroke: 'var(--border)', 'stroke-width': 1 })); const tl = svgEl('text', { x: X0 - 6, y: yy + 3, 'text-anchor': 'end', 'font-size': 9.5, fill: 'var(--decode)' }); tl.textContent = fmt(maxT * k / 4 / 1000, 1) + 'k'; s.appendChild(tl); const tr = svgEl('text', { x: X1 + 6, y: yy + 3, 'font-size': 9.5, fill: 'var(--prefill)' }); tr.textContent = fmt(maxP * k / 4, 0); s.appendChild(tr); }
-  BC.forEach((b, i) => { const tx = svgEl('text', { x: x(i), y: Y0 + 15, 'text-anchor': 'middle', 'font-size': 9.5, class: 't-muted' }); tx.textContent = b; s.appendChild(tx); });
-  const ax = svgEl('text', { x: (X0 + X1) / 2, y: Y0 + 31, 'text-anchor': 'middle', 'font-size': 10, class: 't-faint' }); ax.textContent = 'concurrent requests'; s.appendChild(ax);
-  const cx = +$('#b-c').value;
-  s.appendChild(svgEl('line', { x1: x(cx), x2: x(cx), y1: Y1, y2: Y0, stroke: 'var(--accent)', 'stroke-dasharray': '3 3', 'stroke-width': 1.5 }));
-  s.appendChild(svgEl('polyline', { points: thr.map((v, i) => `${x(i)},${yT(v)}`).join(' '), fill: 'none', stroke: 'var(--decode)', 'stroke-width': 2.5 }));
-  s.appendChild(svgEl('polyline', { points: tp.map((v, i) => `${x(i)},${yP(v)}`).join(' '), fill: 'none', stroke: 'var(--prefill)', 'stroke-width': 2.5, 'stroke-dasharray': '6 4' }));
-  s.appendChild(svgEl('circle', { cx: x(cx), cy: yT(thr[cx]), r: 5, fill: 'var(--decode)' }));
-  s.appendChild(svgEl('circle', { cx: x(cx), cy: yP(tp[cx]), r: 5, fill: 'var(--prefill)' }));
-  const l1 = svgEl('text', { x: X0 + 6, y: Y1 + 4, 'font-size': 10.5, fill: 'var(--decode)', 'font-weight': 600 }); l1.textContent = '— total tok/s (left)'; s.appendChild(l1);
-  const l2 = svgEl('text', { x: X0 + 6, y: Y1 + 18, 'font-size': 10.5, fill: 'var(--prefill)', 'font-weight': 600 }); l2.textContent = '- - TPOT ms (right)'; s.appendChild(l2);
+  const ci = +$('#b-c').value, c = BC[ci]; $('#b-c-v').textContent = c;
+  const t = stepMs(c), m = MEASURED_BATCH[c];
+  const kp = (v, k, meas) => `<div class="kpi"><div class="big" style="font-size:1.15rem">${v}</div><span>${k}</span>${meas ? `<div class="small" style="color:var(--series-1);font-weight:600;margin-top:2px">measured ${meas}</div>` : ''}</div>`;
+  $('#b-kpis').innerHTML = kp(`${fmt(t, 1)} ms`, 'TPOT (model)', m && `${m[0]} ms`) + kp(fmt(1000 / t), 'tok/s per request (model)', m && fmt(1000 / m[0])) + kp(fmt(c * 1000 / t), 'tok/s total (model)', m && fmt(m[1]));
+  lineChart($('#b-chart-tok'), { values: BC.map(b => b * 1000 / stepMs(b)), measured: BC.map(b => MEASURED_BATCH[b]?.[1]), d: 0, unit: ' tok/s', sel: ci });
+  lineChart($('#b-chart-tpot'), { values: BC.map(stepMs), measured: BC.map(b => MEASURED_BATCH[b]?.[0]), d: 2, unit: ' ms', sel: ci });
 }
 $('#b-c').addEventListener('input', drawBatchChart); drawBatchChart();
 
@@ -1057,7 +1401,7 @@ $('#b-c').addEventListener('input', drawBatchChart); drawBatchChart();
   const rows = [['CPU · DDR5 server', 200, 'var(--cpu)'], ['L4 (g6)', 300, 'var(--gpu)'], ['A10G (g5)', 600, 'var(--gpu)'], ['L40S (g6e)', 864, 'var(--gpu)'], ['A100 80 GB', 2039, 'var(--gpu)'], ['H100 SXM', 3350, 'var(--gpu)']];
   const max = 3350; const box = $('#bw-bars');
   box.innerHTML = '<h3 style="margin-bottom:10px">Memory bandwidth → upper limit for 7B decode</h3>' + rows.map(([n, bw, c]) => `<div class="b"><span>${n}</span><div class="track"><div class="fill" style="width:${bw / max * 100}%;background:${c}"></div></div><span class="mono">${fmt(bw / 15.2)} tok/s</span></div>`).join('') +
-    '<p class="note">tok/s = bandwidth (GB/s) ÷ 15.2 GB of weights. Real numbers are lower. On a CPU, prefill is also limited by compute, so long-prompt TTFT is measured in seconds rather than milliseconds.</p>';
+    '<p class="note"><b>Your measurement:</b> 1.5B bf16 (3.08 GB) on the A10G ran at 122 tok/s against a ~195 tok/s floor, so the floor estimate holds up. tok/s = bandwidth (GB/s) ÷ 15.2 GB of weights. Real numbers are lower. On a CPU, prefill is also limited by compute, so long-prompt TTFT is measured in seconds rather than milliseconds.</p>';
 })();
 
 /* ---------------- runbook ---------------- */
@@ -1065,6 +1409,7 @@ $('#b-c').addEventListener('input', drawBatchChart); drawBatchChart();
   const A = [
     ['Laptop: copy the stage to EC2', 'rsync -avz --exclude results/ --exclude .venv/ 00-vllm/ ubuntu@<EC2_IP>:~/00-vllm/'],
     ['EC2: install (once)', 'cd ~/00-vllm && bash deployment/setup_ec2.sh'],
+    ['EC2: environment used in your run', 'export CUDA_HOME=/usr/local/cuda VLLM_USE_FLASHINFER_SAMPLER=0 HF_HOME=/mnt/data/inference/hf-cache'],
     ['EC2: start the server in tmux', 'source .venv/bin/activate && tmux new -s vllm'],
     ['', 'bash deployment/serve.sh'],
     ['Laptop: tunnel (optional)', 'ssh -N -L 8000:localhost:8000 ubuntu@<EC2_IP>'],
@@ -1074,6 +1419,8 @@ $('#b-c').addEventListener('input', drawBatchChart); drawBatchChart();
     ['EC2: quick sanity sweep', 'python benchmark/bench.py --quick'],
     ['EC2: full baseline', 'python benchmark/bench.py --tag qwen1.5b-a10g'],
     ['EC2: view results', 'python benchmark/summarize.py results/*_qwen1.5b-a10g'],
+    ['EC2: prefix vs no-prefix re-run', 'bash experiments/prefix_quant/run_baseline_prefix_compare.sh'],
+    ['EC2: quantization study', 'bash experiments/prefix_quant/run_experiment.sh'],
     ['Laptop: pull results', 'rsync -avz ubuntu@<EC2_IP>:~/00-vllm/results/ 00-vllm/results/'],
   ];
   [[A, '#runbook-a', 'Deploy'], [B, '#runbook-b', 'Measure']].forEach(([L, sel, title]) => {
