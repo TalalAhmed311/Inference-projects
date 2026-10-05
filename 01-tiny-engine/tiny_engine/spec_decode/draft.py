@@ -64,7 +64,7 @@ class DraftModel:
                 self.computed[r.request_id] = item.start_pos + len(item.token_ids)
                 prop = proposals[r.request_id]
                 lg = logits[row]
-                mask_fn(lg, r, len(prop.tokens))
+                lg = mask_fn(lg, r, len(prop.tokens))
                 lg = apply_penalties(lg, r.prompt_token_ids, r.output_token_ids + prop.tokens, r.params)
                 if r.params.greedy:
                     prop.tokens.append(int(torch.argmax(lg)))

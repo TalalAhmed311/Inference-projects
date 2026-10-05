@@ -1,0 +1,135 @@
+===== START Mon Oct  5 15:11:57 UTC 2026 =====
+===== STAGE 2/3/4 offline KV compare =====
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 4452.52it/s]
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO tiny_engine.model.loader: loaded Qwen/Qwen2.5-1.5B-Instruct on cuda (bfloat16): 2.88 GiB weights in 0.7 s
+INFO tiny_engine.engine: engine ready: kv=none sched=fifo | max_model_len=8192 | eos=[151643, 151645] | sampling defaults={'temperature': 0.7, 'top_p': 0.8, 'top_k': 20, 'repetition_penalty': 1.1}
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+
+vLLM baseline: 00-vllm/results/20261005_105831_qwen1.5b-a10g/summary.csv
+Results: /home/ubuntu/inference/Inference-projects/01-tiny-engine/results/20261005_151201_stage2_3_4_kv
+
+        kv    in   out |   TTFT ms  TPOT ms  first10   last10   tok/s ms/1k ctx recompute | vLLM TPOT  TPOT ×
+-------------------------------------------------------------------------------------------------------------
+      none   128    64 |      23.9    24.90    37.08    22.62    40.2   -214.78      160× |         -      -×
+      none   128   128 |      21.8    22.41    22.07    22.63    44.6      2.99      192× |      8.15    2.7×
+      none   512    64 |      38.0    47.03    46.51    47.50    21.3     21.03      544× |         -      -×
+      none   512   128 |      37.8    48.24    46.26    52.41    20.8     42.99      576× |      8.15    5.9×
+      none  2048    64 |     133.0   141.23   140.55   141.67     7.1     20.27    2,080× |         -      -×
+      none  2048   128 |     132.9   142.06   140.57   143.33     7.0     23.80    2,112× |      8.19   17.3×
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 4383.10it/s]
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO tiny_engine.model.loader: loaded Qwen/Qwen2.5-1.5B-Instruct on cuda (bfloat16): 2.88 GiB weights in 0.5 s
+INFO tiny_engine.cache.pool: KV budget: 15.65 GiB (total 22.06 GiB × 0.90 − peak 3.39 GiB − non-torch 0.31 GiB − headroom 0.50 GiB)
+INFO tiny_engine.engine: KV cache: contiguous, 586133 slots (15.65 GiB, 28 KiB/token), max 71.5 full-length requests
+INFO tiny_engine.engine: engine ready: kv=contiguous sched=fifo | max_model_len=8192 | eos=[151643, 151645] | sampling defaults={'temperature': 0.7, 'top_p': 0.8, 'top_k': 20, 'repetition_penalty': 1.1}
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+contiguous   128    64 |      23.0    27.58    26.82    28.34    36.4     26.21        3× |         -      -×
+contiguous   128   128 |      23.0    27.50    27.86    27.16    36.4     -5.31        2× |      8.15    3.4×
+contiguous   512    64 |      38.5    28.46    28.01    28.21    34.9     -8.01        9× |         -      -×
+contiguous   512   128 |      38.2    28.49    27.96    28.46    35.0     -0.01        5× |      8.15    3.5×
+contiguous  2048    64 |     134.3    31.96    31.40    31.99    29.8      9.61       33× |         -      -×
+contiguous  2048   128 |     134.1    31.90    31.87    31.46    30.6     -5.15       17× |      8.19    3.9×
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 4595.60it/s]
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO tiny_engine.model.loader: loaded Qwen/Qwen2.5-1.5B-Instruct on cuda (bfloat16): 2.88 GiB weights in 0.5 s
+INFO tiny_engine.cache.pool: KV budget: 15.65 GiB (total 22.06 GiB × 0.90 − peak 3.39 GiB − non-torch 0.31 GiB − headroom 0.50 GiB)
+INFO tiny_engine.engine: KV cache: paged, 586048 slots (15.65 GiB, 28 KiB/token), max 71.5 full-length requests
+INFO tiny_engine.engine: engine ready: kv=paged sched=fifo block=16 | max_model_len=8192 | eos=[151643, 151645] | sampling defaults={'temperature': 0.7, 'top_p': 0.8, 'top_k': 20, 'repetition_penalty': 1.1}
+     paged   128    64 |      23.4    28.00    27.86    28.01    35.8      6.42        3× |         -      -×
+     paged   128   128 |      23.1    28.05    27.73    27.29    35.7      7.62        2× |      8.15    3.4×
+     paged   512    64 |      38.6    28.07    27.88    27.86    35.4      0.67        9× |         -      -×
+     paged   512   128 |      38.3    28.67    29.09    28.51    34.8      1.27        5× |      8.15    3.5×
+     paged  2048    64 |     134.5    31.78    31.63    31.51    30.0     -9.25       33× |         -      -×
+     paged  2048   128 |     134.5    31.27    31.17    31.15    31.2      1.68       17× |      8.19    3.8×
+
+Saved summary.csv (18 rows), steps.csv (1728 steps), env.json → /home/ubuntu/inference/Inference-projects/01-tiny-engine/results/20261005_151201_stage2_3_4_kv
+===== STAGE 4 paged capacity =====
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+
+                      mode | running mean  peak | reserved%  used%  waste | preempt   tok/s  TTFT p50  e2e p50
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 4163.86it/s]
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO tiny_engine.model.loader: loaded Qwen/Qwen2.5-1.5B-Instruct on cuda (bfloat16): 2.88 GiB weights in 0.7 s
+INFO tiny_engine.engine: KV cache: contiguous, 18724 slots (0.50 GiB, 28 KiB/token), max 2.3 full-length requests
+INFO tiny_engine.engine: engine ready: kv=contiguous sched=continuous | max_model_len=8192 | eos=[151643, 151645] | sampling defaults={'temperature': 0.7, 'top_p': 0.8, 'top_k': 20, 'repetition_penalty': 1.1}
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+  contiguous/max_model_len |          2.0     2 |     85.9%   5.3%  93.9% |       0    65.6 149,411.1   164.47
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 4404.59it/s]
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO tiny_engine.model.loader: loaded Qwen/Qwen2.5-1.5B-Instruct on cuda (bfloat16): 2.88 GiB weights in 0.5 s
+INFO tiny_engine.engine: KV cache: contiguous, 18724 slots (0.50 GiB, 28 KiB/token), max 2.3 full-length requests
+INFO tiny_engine.engine: engine ready: kv=contiguous sched=continuous | max_model_len=8192 | eos=[151643, 151645] | sampling defaults={'temperature': 0.7, 'top_p': 0.8, 'top_k': 20, 'repetition_penalty': 1.1}
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+     contiguous/max_tokens |         10.6    13 |     75.2%  28.2%  62.1% |       0   254.4  28,333.7    42.79
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 4118.00it/s]
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO tiny_engine.model.loader: loaded Qwen/Qwen2.5-1.5B-Instruct on cuda (bfloat16): 2.88 GiB weights in 0.5 s
+INFO tiny_engine.engine: KV cache: paged, 18720 slots (0.50 GiB, 28 KiB/token), max 2.3 full-length requests
+INFO tiny_engine.engine: engine ready: kv=paged sched=continuous block=16 | max_model_len=8192 | eos=[151643, 151645] | sampling defaults={'temperature': 0.7, 'top_p': 0.8, 'top_k': 20, 'repetition_penalty': 1.1}
+                     paged |         25.3    59 |     68.8%  67.8%   1.4% |      32   407.8   1,119.8    30.49
+
+Saved summary.csv, timeline.csv (per step), env.json → /home/ubuntu/inference/Inference-projects/01-tiny-engine/results/20261005_151327_stage4_capacity
+===== STAGE 5 scheduling =====
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+
+     policy |  req/s   tok/s |  TTFT p50  TTFT p99 |  TPOT p50  TPOT p99 |  e2e p50  makespan preempt
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 4495.39it/s]
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO tiny_engine.model.loader: loaded Qwen/Qwen2.5-1.5B-Instruct on cuda (bfloat16): 2.88 GiB weights in 0.7 s
+INFO tiny_engine.cache.pool: KV budget: 15.65 GiB (total 22.06 GiB × 0.90 − peak 3.39 GiB − non-torch 0.31 GiB − headroom 0.50 GiB)
+INFO tiny_engine.engine: KV cache: paged, 586128 slots (15.65 GiB, 28 KiB/token), max 71.5 full-length requests
+INFO tiny_engine.engine: engine ready: kv=paged sched=fifo block=16 | max_model_len=8192 | eos=[151643, 151645] | sampling defaults={'temperature': 0.7, 'top_p': 0.8, 'top_k': 20, 'repetition_penalty': 1.1}
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+       fifo |   0.24    34.4 | 112,070.3 243,166.7 |     28.67     31.56 |   116.82     267.2       0
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 4526.42it/s]
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO tiny_engine.model.loader: loaded Qwen/Qwen2.5-1.5B-Instruct on cuda (bfloat16): 2.88 GiB weights in 0.5 s
+INFO tiny_engine.cache.pool: KV budget: 15.65 GiB (total 22.06 GiB × 0.90 − peak 3.39 GiB − non-torch 0.31 GiB − headroom 0.50 GiB)
+INFO tiny_engine.engine: KV cache: paged, 586048 slots (15.65 GiB, 28 KiB/token), max 71.5 full-length requests
+INFO tiny_engine.engine: engine ready: kv=paged sched=static block=16 | max_model_len=8192 | eos=[151643, 151645] | sampling defaults={'temperature': 0.7, 'top_p': 0.8, 'top_k': 20, 'repetition_penalty': 1.1}
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+     static |   0.98   140.5 |  23,576.2  42,284.7 |     35.58     37.89 |    27.97      65.4       0
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 4318.30it/s]
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO tiny_engine.model.loader: loaded Qwen/Qwen2.5-1.5B-Instruct on cuda (bfloat16): 2.88 GiB weights in 0.5 s
+INFO tiny_engine.cache.pool: KV budget: 15.65 GiB (total 22.06 GiB × 0.90 − peak 3.39 GiB − non-torch 0.31 GiB − headroom 0.50 GiB)
+INFO tiny_engine.engine: KV cache: paged, 586048 slots (15.65 GiB, 28 KiB/token), max 71.5 full-length requests
+INFO tiny_engine.engine: engine ready: kv=paged sched=continuous block=16 | max_model_len=8192 | eos=[151643, 151645] | sampling defaults={'temperature': 0.7, 'top_p': 0.8, 'top_k': 20, 'repetition_penalty': 1.1}

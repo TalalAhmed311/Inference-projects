@@ -1,0 +1,78 @@
+=== starting tiny-engine [tiny_v0] features=none on :8001 ===
+server pid=67463
+>>> concurrency=1 num_requests=8
+    qps=0.626  out_tok/s=40.1  ttft_p50=26.98ms  tpot_p50=23.32ms  errors=0  gpu_util_mean=51.64  gpu_mem_peak=3475.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=2 num_requests=8
+    qps=0.673  out_tok/s=43.1  ttft_p50=1515.21ms  tpot_p50=23.27ms  errors=0  gpu_util_mean=56.636  gpu_mem_peak=3475.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=4 num_requests=16
+    qps=0.68  out_tok/s=43.5  ttft_p50=4364.4ms  tpot_p50=22.95ms  errors=0  gpu_util_mean=56.867  gpu_mem_peak=3475.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=8 num_requests=32
+    qps=0.67  out_tok/s=42.9  ttft_p50=10370.72ms  tpot_p50=23.27ms  errors=0  gpu_util_mean=55.733  gpu_mem_peak=3475.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=16 num_requests=64
+    qps=0.677  out_tok/s=43.3  ttft_p50=22090.57ms  tpot_p50=22.95ms  errors=0  gpu_util_mean=56.883  gpu_mem_peak=3475.0MiB  disk_read_peak=0.0MiB/s
+wrote /home/ubuntu/inference/Inference-projects/01-tiny-engine/results/experiments/03_tiny_multireq/20261005_155704_tiny_v0
+stopping server 67463
+=== starting tiny-engine [tiny_kv] features=kv on :8001 ===
+server pid=69331
+>>> concurrency=1 num_requests=8
+    qps=0.541  out_tok/s=34.6  ttft_p50=26.79ms  tpot_p50=28.27ms  errors=0  gpu_util_mean=40.25  gpu_mem_peak=19511.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=2 num_requests=8
+    qps=0.539  out_tok/s=34.5  ttft_p50=1882.58ms  tpot_p50=29.1ms  errors=0  gpu_util_mean=40.448  gpu_mem_peak=19511.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=4 num_requests=16
+    qps=0.551  out_tok/s=35.2  ttft_p50=5433.83ms  tpot_p50=28.15ms  errors=0  gpu_util_mean=42.145  gpu_mem_peak=19511.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=8 num_requests=32
+    qps=0.55  out_tok/s=35.2  ttft_p50=12733.86ms  tpot_p50=28.38ms  errors=0  gpu_util_mean=41.591  gpu_mem_peak=19511.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=16 num_requests=64
+    qps=0.549  out_tok/s=35.2  ttft_p50=27282.62ms  tpot_p50=28.39ms  errors=0  gpu_util_mean=41.688  gpu_mem_peak=19511.0MiB  disk_read_peak=0.0MiB/s
+wrote /home/ubuntu/inference/Inference-projects/01-tiny-engine/results/experiments/03_tiny_multireq/20261005_160032_tiny_kv
+stopping server 69331
+=== starting tiny-engine [tiny_paged] features=paged on :8001 ===
+server pid=71739
+>>> concurrency=1 num_requests=8
+    qps=0.562  out_tok/s=35.9  ttft_p50=27.47ms  tpot_p50=27.07ms  errors=0  gpu_util_mean=41.63  gpu_mem_peak=19511.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=2 num_requests=8
+    qps=0.567  out_tok/s=36.3  ttft_p50=1788.17ms  tpot_p50=27.6ms  errors=0  gpu_util_mean=41.667  gpu_mem_peak=19511.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=4 num_requests=16
+    qps=0.575  out_tok/s=36.8  ttft_p50=5206.86ms  tpot_p50=27.09ms  errors=0  gpu_util_mean=43.925  gpu_mem_peak=19511.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=8 num_requests=32
+    qps=0.574  out_tok/s=36.8  ttft_p50=12177.44ms  tpot_p50=27.22ms  errors=0  gpu_util_mean=43.495  gpu_mem_peak=19511.0MiB  disk_read_peak=0.007MiB/s
+>>> concurrency=16 num_requests=64
+    qps=0.568  out_tok/s=36.4  ttft_p50=26396.77ms  tpot_p50=27.75ms  errors=0  gpu_util_mean=43.089  gpu_mem_peak=19511.0MiB  disk_read_peak=0.007MiB/s
+wrote /home/ubuntu/inference/Inference-projects/01-tiny-engine/results/experiments/03_tiny_multireq/20261005_160445_tiny_paged
+stopping server 71739
+=== starting tiny-engine [tiny_paged_batching] features=paged,batching on :8001 ===
+server pid=73996
+>>> concurrency=1 num_requests=8
+    qps=0.558  out_tok/s=35.7  ttft_p50=28.31ms  tpot_p50=27.58ms  errors=0  gpu_util_mean=42.036  gpu_mem_peak=19511.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=2 num_requests=8
+    qps=1.126  out_tok/s=72.1  ttft_p50=54.84ms  tpot_p50=27.19ms  errors=0  gpu_util_mean=46.385  gpu_mem_peak=19511.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=4 num_requests=16
+    qps=2.065  out_tok/s=132.2  ttft_p50=67.32ms  tpot_p50=29.7ms  errors=0  gpu_util_mean=43.533  gpu_mem_peak=19531.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=8 num_requests=32
+    qps=3.879  out_tok/s=248.3  ttft_p50=88.81ms  tpot_p50=31.56ms  errors=0  gpu_util_mean=42.733  gpu_mem_peak=19535.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=16 num_requests=64
+    qps=6.813  out_tok/s=436.1  ttft_p50=135.84ms  tpot_p50=35.08ms  errors=0  gpu_util_mean=42.889  gpu_mem_peak=19559.0MiB  disk_read_peak=0.0MiB/s
+wrote /home/ubuntu/inference/Inference-projects/01-tiny-engine/results/experiments/03_tiny_multireq/20261005_160848_tiny_paged_batching
+stopping server 73996
+=== starting tiny-engine [tiny_paged_batch_chunk_prefix] features=paged,batching,chunked,prefix on :8001 ===
+server pid=74362
+>>> concurrency=1 num_requests=8
+    qps=0.563  out_tok/s=36.0  ttft_p50=32.88ms  tpot_p50=27.42ms  errors=0  gpu_util_mean=42.111  gpu_mem_peak=19911.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=2 num_requests=8
+    qps=1.087  out_tok/s=69.5  ttft_p50=61.04ms  tpot_p50=28.3ms  errors=0  gpu_util_mean=41.571  gpu_mem_peak=19911.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=4 num_requests=16
+    qps=2.098  out_tok/s=134.3  ttft_p50=65.21ms  tpot_p50=29.21ms  errors=0  gpu_util_mean=43.733  gpu_mem_peak=19911.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=8 num_requests=32
+    qps=3.936  out_tok/s=251.9  ttft_p50=69.74ms  tpot_p50=31.1ms  errors=0  gpu_util_mean=42.133  gpu_mem_peak=19911.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=16 num_requests=64
+    qps=7.164  out_tok/s=458.5  ttft_p50=78.62ms  tpot_p50=34.13ms  errors=0  gpu_util_mean=43.765  gpu_mem_peak=19931.0MiB  disk_read_peak=0.0MiB/s
+wrote /home/ubuntu/inference/Inference-projects/01-tiny-engine/results/experiments/03_tiny_multireq/20261005_160952_tiny_paged_batch_chunk_prefix
+stopping server 74362
+=== starting tiny-engine [tiny_all] features=all on :8001 ===
+server pid=74656
+>>> concurrency=1 num_requests=8
+    qps=0.0  out_tok/s=0.0  ttft_p50=Nonems  tpot_p50=Nonems  errors=8  gpu_util_mean=37.75  gpu_mem_peak=19909.0MiB  disk_read_peak=0.0MiB/s
+    all requests failed — stopping sweep
+wrote /home/ubuntu/inference/Inference-projects/01-tiny-engine/results/experiments/03_tiny_multireq/20261005_161104_tiny_all
+stopping server 74656
+DONE tiny-engine experiment → /home/ubuntu/inference/Inference-projects/01-tiny-engine/results/experiments/03_tiny_multireq

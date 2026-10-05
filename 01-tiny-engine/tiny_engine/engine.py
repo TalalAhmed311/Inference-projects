@@ -27,6 +27,7 @@ from tiny_engine.cache import KVCacheSpec, KVPool, kv_budget_bytes, make_kv_mana
 from tiny_engine.config import DEFAULT_MAX_MODEL_LEN, EngineConfig, resolve_device, resolve_dtype
 from tiny_engine.metrics import EngineStats, StepRecord
 from tiny_engine.model import BatchItem, CachedModelRunner, ModelRunner, load_model
+from tiny_engine.model.attention import configure_sdp_backends
 from tiny_engine.request import Request, RequestOutput, RequestStatus
 from tiny_engine.sampling import Sampler, SamplingParams, generation_defaults, needs_penalties
 from tiny_engine.scheduler import SchedulerOutput, build_scheduler
@@ -39,6 +40,7 @@ logger = logging.getLogger(__name__)
 class LLMEngine:
     def __init__(self, config: EngineConfig):
         config.validate()
+        configure_sdp_backends()
         self.config = config
         self.device = resolve_device(config.device)
         self.dtype = resolve_dtype(config.dtype, self.device)
@@ -186,7 +188,7 @@ class LLMEngine:
         if self._sync:
             self.runner.synchronize()
         t1 = time.perf_counter()
-        self._mask_logits(logits, req)
+        logits = self._mask_logits(logits, req)
         token = self.sampler(logits, req.params, req.prompt_token_ids, req.output_token_ids, req.generator)
         t2 = time.perf_counter()
         phase = "prefill" if not req.output_token_ids else "decode"
@@ -303,23 +305,30 @@ class LLMEngine:
         room = self.max_model_len - r.num_tokens - 1
         return max(0, min(k_max, left, room))
 
-    def _mask_logits(self, logits: torch.Tensor, req: Request, extra_outputs: int = 0) -> None:
+    def _mask_logits(self, logits: torch.Tensor, req: Request, extra_outputs: int = 0) -> torch.Tensor:
         # The embedding matrix is padded past the real vocabulary (151936 vs 151665 for Qwen2.5);
         # those rows were never trained and must never be sampled.
+        # Clone when needed: @torch.inference_mode() forwards return tensors that forbid inplace writes.
+        if torch.is_inference(logits):
+            logits = logits.clone()
         if logits.shape[-1] > self.tokenizer.vocab_size:
             logits[..., self.tokenizer.vocab_size:] = float("-inf")
         blocked = req.blocked_token_ids(extra_outputs)
         if blocked:
             logits[..., blocked] = float("-inf")
+        return logits
 
-    def _mask_for_draft(self, logits: torch.Tensor, req: Request, extra_outputs: int) -> None:
-        self._mask_logits(logits, req, extra_outputs)
+    def _mask_for_draft(self, logits: torch.Tensor, req: Request, extra_outputs: int) -> torch.Tensor:
+        return self._mask_logits(logits, req, extra_outputs)
 
     def _sample_rows(self, logits: torch.Tensor, reqs: list[Request]) -> list[int]:
         if not reqs:
             return []
+        # One clone for the batch so per-row masks can write safely under InferenceMode.
+        if torch.is_inference(logits):
+            logits = logits.clone()
         for i, r in enumerate(reqs):
-            self._mask_logits(logits[i], r)
+            logits[i] = self._mask_logits(logits[i], r)
         # Fast path: plain greedy for the whole batch is one argmax over [B, vocab].
         if all(r.params.greedy and not needs_penalties(r.params) for r in reqs):
             return logits.argmax(dim=-1).tolist()

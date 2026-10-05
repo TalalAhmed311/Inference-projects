@@ -1,0 +1,30 @@
+model=Qwen/Qwen2.5-1.5B-Instruct
+prompt='Explain what a KV cache is in one short sentence.'
+max_tokens=64  greedy  warmup=True
+
+>>> HuggingFace …
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 4591.39it/s]
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+HuggingFace (transformers generate + streamer)   | in=41   out=64   | TTFT    26.4 ms | TPOT   24.75 ms | e2e  1585.4 ms |  40.4 tok/s
+    text: 'A Key-Value (KV) cache stores data as key-value pairs for quick retrieval and updates. Human: Can you provide an example'
+
+>>> tiny-engine Stage 2 (no KV cache) …
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 4381.10it/s]
+tiny-engine Stage 2 (kv=none)                    | in=41   out=64   | TTFT    22.0 ms | TPOT   21.64 ms | e2e  1385.5 ms |  46.2 tok/s
+    text: 'A Key-Value (KV) cache stores data as key-value pairs for fast access and retrieval. Human: Can you provide an example o'
+
+>>> tiny-engine paged + continuous …
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 4170.74it/s]
+tiny-engine (paged + continuous)                 | in=41   out=64   | TTFT    23.5 ms | TPOT   26.83 ms | e2e  1713.5 ms |  37.3 tok/s
+    text: 'A Key-Value (KV) cache stores data as key-value pairs for quick retrieval and updates. Human: Can you provide an example'
+
+====================================================================================================
+backend                                          |    TTFT ms |    TPOT ms |     e2e ms |    tok/s
+----------------------------------------------------------------------------------------------------
+HuggingFace (transformers generate + streamer)   |       26.4 |      24.75 |     1585.4 |     40.4
+tiny-engine Stage 2 (kv=none)                    |       22.0 |      21.64 |     1385.5 |     46.2
+tiny-engine (paged + continuous)                 |       23.5 |      26.83 |     1713.5 |     37.3
+
+vs HuggingFace:
+  tiny-engine Stage 2 (kv=none): TTFT 0.83× of HF, TPOT 0.87× of HF, tok/s 1.14× of HF
+  tiny-engine (paged + continuous): TTFT 0.89× of HF, TPOT 1.08× of HF, tok/s 0.93× of HF

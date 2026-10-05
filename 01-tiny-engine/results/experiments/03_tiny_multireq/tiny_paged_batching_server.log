@@ -1,0 +1,283 @@
+<frozen runpy>:128: RuntimeWarning: 'tiny_engine.serving.api_server' found in sys.modules after import of package 'tiny_engine.serving', but prior to execution of 'tiny_engine.serving.api_server'; this may result in unpredictable behaviour
+2026-10-05 16:08:45,079 INFO tiny_engine.server: features: KV cache: paged (block 16) | scheduler: continuous (max 64 seqs)
+2026-10-05 16:08:45,253 INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+2026-10-05 16:08:45,279 INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-10-05 16:08:45,305 INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-05 16:08:45,627 INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+2026-10-05 16:08:45,648 INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 4332.30it/s]
+2026-10-05 16:08:46,379 INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+2026-10-05 16:08:46,381 INFO tiny_engine.model.loader: loaded Qwen/Qwen2.5-1.5B-Instruct on cuda (bfloat16): 2.88 GiB weights in 0.7 s
+2026-10-05 16:08:47,625 INFO tiny_engine.cache.pool: KV budget: 15.65 GiB (total 22.06 GiB × 0.90 − peak 3.39 GiB − non-torch 0.31 GiB − headroom 0.50 GiB)
+2026-10-05 16:08:47,643 INFO tiny_engine.engine: KV cache: paged, 586128 slots (15.65 GiB, 28 KiB/token), max 71.5 full-length requests
+2026-10-05 16:08:47,643 INFO tiny_engine.engine: engine ready: kv=paged sched=continuous block=16 | max_model_len=8192 | eos=[151643, 151645] | sampling defaults={'temperature': 0.7, 'top_p': 0.8, 'top_k': 20, 'repetition_penalty': 1.1}
+INFO:     Started server process [73996]
+INFO:     Waiting for application startup.
+2026-10-05 16:08:47,662 INFO tiny_engine.async_engine: engine loop started
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8001 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54962 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54976 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54982 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:08:51,275 INFO tiny_engine.server: chatcmpl-7202239e3eec4f529dcc9bab2d9543ea done: 41→64 tokens, queue 0 ms, TTFT 162 ms, e2e 1.97 s, length
+INFO:     127.0.0.1:54986 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:08:53,016 INFO tiny_engine.server: chatcmpl-b32d87a5456f4b8a9c10ea776b490e43 done: 41→64 tokens, queue 0 ms, TTFT 25 ms, e2e 1.74 s, length
+INFO:     127.0.0.1:54988 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:08:54,776 INFO tiny_engine.server: chatcmpl-ab236d953a434e1db66724c2e3c407c3 done: 41→64 tokens, queue 0 ms, TTFT 26 ms, e2e 1.76 s, length
+INFO:     127.0.0.1:59680 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:08:56,569 INFO tiny_engine.server: chatcmpl-f46c16767eb2400f97beac0cc5b12a2f done: 41→64 tokens, queue 0 ms, TTFT 25 ms, e2e 1.79 s, length
+INFO:     127.0.0.1:59692 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:08:58,351 INFO tiny_engine.server: chatcmpl-8a3b6ab79cff44c2b5d214322ea1272c done: 41→64 tokens, queue 0 ms, TTFT 25 ms, e2e 1.78 s, length
+INFO:     127.0.0.1:59708 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:00,123 INFO tiny_engine.server: chatcmpl-7447722043ce45ff9be2002d4bd9ba5b done: 41→64 tokens, queue 0 ms, TTFT 25 ms, e2e 1.77 s, length
+INFO:     127.0.0.1:59710 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:01,860 INFO tiny_engine.server: chatcmpl-9f6c0dc4cfaf494382838272f57e0b49 done: 41→64 tokens, queue 0 ms, TTFT 24 ms, e2e 1.73 s, length
+INFO:     127.0.0.1:59716 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:03,567 INFO tiny_engine.server: chatcmpl-c65bb01b15ba4937a16917c4b3ba5969 done: 41→64 tokens, queue 0 ms, TTFT 24 ms, e2e 1.70 s, length
+INFO:     127.0.0.1:59718 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59734 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:06,327 INFO tiny_engine.server: chatcmpl-6290c5ed549c4b0cb7f3b5980349c561 done: 41→64 tokens, queue 0 ms, TTFT 25 ms, e2e 1.75 s, length
+INFO:     127.0.0.1:36786 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:06,355 INFO tiny_engine.server: chatcmpl-646562fbc0d2458097a7e36cf5906413 done: 41→64 tokens, queue 25 ms, TTFT 78 ms, e2e 1.78 s, length
+INFO:     127.0.0.1:36800 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:08,090 INFO tiny_engine.server: chatcmpl-489af54eea7143388b0f2ce3011f9bf5 done: 41→64 tokens, queue 24 ms, TTFT 49 ms, e2e 1.76 s, length
+INFO:     127.0.0.1:36816 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:08,119 INFO tiny_engine.server: chatcmpl-7442430e98ed4ae686fa3bd9f8313fc7 done: 41→64 tokens, queue 21 ms, TTFT 52 ms, e2e 1.76 s, length
+INFO:     127.0.0.1:36820 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:09,858 INFO tiny_engine.server: chatcmpl-e26a3801102045b6a35e171eac1becd5 done: 41→64 tokens, queue 25 ms, TTFT 50 ms, e2e 1.76 s, length
+INFO:     127.0.0.1:36832 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:09,887 INFO tiny_engine.server: chatcmpl-63b8236dd2224541a1a3f3b5eb6995f7 done: 41→64 tokens, queue 22 ms, TTFT 53 ms, e2e 1.76 s, length
+INFO:     127.0.0.1:36842 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:11,644 INFO tiny_engine.server: chatcmpl-654098dff9d6474282d63d2005ce55a4 done: 41→64 tokens, queue 25 ms, TTFT 50 ms, e2e 1.78 s, length
+2026-10-05 16:09:11,671 INFO tiny_engine.server: chatcmpl-afc56f8748874a9194fc9ff3b59225a5 done: 41→64 tokens, queue 22 ms, TTFT 52 ms, e2e 1.78 s, length
+INFO:     127.0.0.1:36862 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36868 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36856 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36854 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:14,572 INFO tiny_engine.server: chatcmpl-faeaa087edd447e2b0666c206ade95d4 done: 41→64 tokens, queue 0 ms, TTFT 25 ms, e2e 1.89 s, length
+INFO:     127.0.0.1:36872 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:14,605 INFO tiny_engine.server: chatcmpl-6b74e19c2a3c45a489a93edae138fa44 done: 41→64 tokens, queue 25 ms, TTFT 64 ms, e2e 1.92 s, length
+2026-10-05 16:09:14,605 INFO tiny_engine.server: chatcmpl-f6d8314e464d4fefb2eb7c22e12e72fa done: 41→64 tokens, queue 24 ms, TTFT 62 ms, e2e 1.92 s, length
+2026-10-05 16:09:14,606 INFO tiny_engine.server: chatcmpl-f8c05dd22ae1453a9e63aef3863c369a done: 41→64 tokens, queue 23 ms, TTFT 62 ms, e2e 1.92 s, length
+INFO:     127.0.0.1:36880 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36886 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36902 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:16,510 INFO tiny_engine.server: chatcmpl-b717336e5c6145c4af0e3cb317a5c6e4 done: 41→64 tokens, queue 27 ms, TTFT 57 ms, e2e 1.93 s, length
+INFO:     127.0.0.1:57254 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:16,541 INFO tiny_engine.server: chatcmpl-68c22be6242d47aa8ab15a5771818029 done: 41→64 tokens, queue 23 ms, TTFT 62 ms, e2e 1.93 s, length
+2026-10-05 16:09:16,541 INFO tiny_engine.server: chatcmpl-3a6d68332dc14d1f9bd2101549583bdb done: 41→64 tokens, queue 22 ms, TTFT 61 ms, e2e 1.93 s, length
+2026-10-05 16:09:16,542 INFO tiny_engine.server: chatcmpl-5822b74c4ebe445a961c82dd406ec423 done: 41→64 tokens, queue 21 ms, TTFT 61 ms, e2e 1.93 s, length
+INFO:     127.0.0.1:57266 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57272 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57284 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:18,450 INFO tiny_engine.server: chatcmpl-01384ab4787b42fab7b1aa1f5e0f7e09 done: 41→64 tokens, queue 27 ms, TTFT 56 ms, e2e 1.94 s, length
+INFO:     127.0.0.1:57296 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:18,481 INFO tiny_engine.server: chatcmpl-575b8364c9e04f25b16a484df210197b done: 41→64 tokens, queue 23 ms, TTFT 62 ms, e2e 1.93 s, length
+2026-10-05 16:09:18,481 INFO tiny_engine.server: chatcmpl-047bf20ad083416daa64eac9092f9cdc done: 41→64 tokens, queue 21 ms, TTFT 60 ms, e2e 1.93 s, length
+2026-10-05 16:09:18,481 INFO tiny_engine.server: chatcmpl-c4652fe67721433bb84ebdcb7d10f59d done: 41→64 tokens, queue 21 ms, TTFT 60 ms, e2e 1.93 s, length
+INFO:     127.0.0.1:57310 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57314 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57318 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:20,390 INFO tiny_engine.server: chatcmpl-f8f849017d234fd28ef44b1556d7d659 done: 41→64 tokens, queue 27 ms, TTFT 56 ms, e2e 1.94 s, length
+2026-10-05 16:09:20,420 INFO tiny_engine.server: chatcmpl-1815a870ada245ca9b99e92fe1f74f32 done: 41→64 tokens, queue 23 ms, TTFT 62 ms, e2e 1.93 s, length
+2026-10-05 16:09:20,420 INFO tiny_engine.server: chatcmpl-dbbb690c38414c7ca7391131d8a4ff62 done: 41→64 tokens, queue 22 ms, TTFT 61 ms, e2e 1.93 s, length
+2026-10-05 16:09:20,420 INFO tiny_engine.server: chatcmpl-da32e773902747149870ea9d4525daeb done: 41→64 tokens, queue 21 ms, TTFT 60 ms, e2e 1.93 s, length
+INFO:     127.0.0.1:57346 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57384 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57390 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57406 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57408 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57332 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57356 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57368 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:23,474 INFO tiny_engine.server: chatcmpl-eede9233a4304472a69c290d566319e9 done: 41→64 tokens, queue 0 ms, TTFT 27 ms, e2e 2.04 s, length
+INFO:     127.0.0.1:57414 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:23,508 INFO tiny_engine.server: chatcmpl-fa9a2e643086418eaf472cdf580775cd done: 41→64 tokens, queue 26 ms, TTFT 84 ms, e2e 2.07 s, length
+2026-10-05 16:09:23,508 INFO tiny_engine.server: chatcmpl-661bd8244b904755976f621843740425 done: 41→64 tokens, queue 26 ms, TTFT 84 ms, e2e 2.07 s, length
+2026-10-05 16:09:23,509 INFO tiny_engine.server: chatcmpl-acc2b2ac014b4eeeaccc5466ad85c9d0 done: 41→64 tokens, queue 26 ms, TTFT 83 ms, e2e 2.07 s, length
+2026-10-05 16:09:23,509 INFO tiny_engine.server: chatcmpl-5eac71538fd3465c8fe3d8c747a757c0 done: 41→64 tokens, queue 25 ms, TTFT 83 ms, e2e 2.07 s, length
+2026-10-05 16:09:23,509 INFO tiny_engine.server: chatcmpl-cd19db707ef64edbb21c19b9b603d617 done: 41→64 tokens, queue 25 ms, TTFT 83 ms, e2e 2.07 s, length
+2026-10-05 16:09:23,510 INFO tiny_engine.server: chatcmpl-14a59adfcfa4412192f36a04a5700c8b done: 41→64 tokens, queue 24 ms, TTFT 82 ms, e2e 2.07 s, length
+2026-10-05 16:09:23,510 INFO tiny_engine.server: chatcmpl-4af81c513c9345a49326766c3ff014ee done: 41→64 tokens, queue 23 ms, TTFT 81 ms, e2e 2.07 s, length
+INFO:     127.0.0.1:57422 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57426 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57428 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57442 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57444 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57460 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57468 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:25,484 INFO tiny_engine.server: chatcmpl-27d509ef2e2c407887ffe4c1da0d6d7b done: 41→64 tokens, queue 28 ms, TTFT 64 ms, e2e 2.00 s, length
+INFO:     127.0.0.1:52340 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:25,515 INFO tiny_engine.server: chatcmpl-f3fb7e53c05548639b3d7908cf1dddd0 done: 41→64 tokens, queue 24 ms, TTFT 81 ms, e2e 2.00 s, length
+2026-10-05 16:09:25,516 INFO tiny_engine.server: chatcmpl-b5dd90b4e9484b63b1f1fee3003f95f0 done: 41→64 tokens, queue 22 ms, TTFT 80 ms, e2e 1.99 s, length
+2026-10-05 16:09:25,516 INFO tiny_engine.server: chatcmpl-4914a6d9c59146e084b3ce5e908ac42d done: 41→64 tokens, queue 21 ms, TTFT 78 ms, e2e 1.99 s, length
+2026-10-05 16:09:25,517 INFO tiny_engine.server: chatcmpl-e89b7d72e2554214bbe45aca45e5b3df done: 41→64 tokens, queue 20 ms, TTFT 78 ms, e2e 1.99 s, length
+2026-10-05 16:09:25,517 INFO tiny_engine.server: chatcmpl-46ab94eb74994cf39418205a149da9ab done: 41→64 tokens, queue 20 ms, TTFT 77 ms, e2e 1.99 s, length
+2026-10-05 16:09:25,518 INFO tiny_engine.server: chatcmpl-d7047c54cac247d0b4791b045475330a done: 41→64 tokens, queue 19 ms, TTFT 76 ms, e2e 1.99 s, length
+2026-10-05 16:09:25,518 INFO tiny_engine.server: chatcmpl-86a4105828694032bacfeaa57013d332 done: 41→64 tokens, queue 18 ms, TTFT 76 ms, e2e 1.99 s, length
+INFO:     127.0.0.1:52344 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52358 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52368 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52384 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52390 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52402 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52406 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:27,557 INFO tiny_engine.server: chatcmpl-dc764828b06e41998f56bd220cd1c5ea done: 41→64 tokens, queue 27 ms, TTFT 61 ms, e2e 2.07 s, length
+INFO:     127.0.0.1:52420 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:27,591 INFO tiny_engine.server: chatcmpl-0cc957d4e0074d7086f237f3d53cbd4a done: 41→64 tokens, queue 24 ms, TTFT 80 ms, e2e 2.06 s, length
+2026-10-05 16:09:27,591 INFO tiny_engine.server: chatcmpl-a37a8e02983348dabf2be7a332ccde00 done: 41→64 tokens, queue 22 ms, TTFT 79 ms, e2e 2.06 s, length
+2026-10-05 16:09:27,591 INFO tiny_engine.server: chatcmpl-bb6fb541859941579b8ecc41d916a8a9 done: 41→64 tokens, queue 21 ms, TTFT 77 ms, e2e 2.06 s, length
+2026-10-05 16:09:27,592 INFO tiny_engine.server: chatcmpl-c8cba605dc3445a0a188a1a5c8041120 done: 41→64 tokens, queue 21 ms, TTFT 77 ms, e2e 2.06 s, length
+2026-10-05 16:09:27,592 INFO tiny_engine.server: chatcmpl-1897e69bdfc84f26b87bd14fabe478e4 done: 41→64 tokens, queue 20 ms, TTFT 76 ms, e2e 2.06 s, length
+2026-10-05 16:09:27,592 INFO tiny_engine.server: chatcmpl-882d9d7b363c495ebd65d6bbaa5133ae done: 41→64 tokens, queue 19 ms, TTFT 75 ms, e2e 2.06 s, length
+2026-10-05 16:09:27,593 INFO tiny_engine.server: chatcmpl-cb3d0fff414a4f0594f48fc4bae14e08 done: 41→64 tokens, queue 18 ms, TTFT 75 ms, e2e 2.06 s, length
+INFO:     127.0.0.1:52432 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52438 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52446 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52462 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52442 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52468 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52480 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:29,638 INFO tiny_engine.server: chatcmpl-9bc5b232c59740df8ce5a6dfad19c324 done: 41→64 tokens, queue 28 ms, TTFT 62 ms, e2e 2.07 s, length
+2026-10-05 16:09:29,669 INFO tiny_engine.server: chatcmpl-0cdc2e0d45324891add535cc0343c54a done: 41→64 tokens, queue 22 ms, TTFT 80 ms, e2e 2.07 s, length
+2026-10-05 16:09:29,670 INFO tiny_engine.server: chatcmpl-77e3697fbd3c4b52ace91be8807feba4 done: 41→64 tokens, queue 21 ms, TTFT 78 ms, e2e 2.07 s, length
+2026-10-05 16:09:29,670 INFO tiny_engine.server: chatcmpl-fea7702d2789407fbd76feed7ed12aac done: 41→64 tokens, queue 20 ms, TTFT 77 ms, e2e 2.06 s, length
+2026-10-05 16:09:29,670 INFO tiny_engine.server: chatcmpl-a0f3c1632155445f8e44df6e0146abf2 done: 41→64 tokens, queue 20 ms, TTFT 77 ms, e2e 2.06 s, length
+2026-10-05 16:09:29,670 INFO tiny_engine.server: chatcmpl-074420d9bd474eb980bde6507617bdf1 done: 41→64 tokens, queue 18 ms, TTFT 76 ms, e2e 2.06 s, length
+2026-10-05 16:09:29,670 INFO tiny_engine.server: chatcmpl-ce58e0bbcb8c41e8b6d4881fb399d808 done: 41→64 tokens, queue 18 ms, TTFT 75 ms, e2e 2.06 s, length
+2026-10-05 16:09:29,671 INFO tiny_engine.server: chatcmpl-dd2d5cdcd4764e1aa39d962bfa55656a done: 41→64 tokens, queue 17 ms, TTFT 75 ms, e2e 2.06 s, length
+INFO:     127.0.0.1:52536 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52542 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52544 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52558 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52590 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52596 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52598 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52614 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52492 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52502 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52514 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52520 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52568 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52572 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52574 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52576 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:32,984 INFO tiny_engine.server: chatcmpl-4c0776a0c3f240b8b59cb0de23f1037e done: 41→64 tokens, queue 0 ms, TTFT 29 ms, e2e 2.29 s, length
+INFO:     127.0.0.1:52628 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:33,023 INFO tiny_engine.server: chatcmpl-9e9b20cab5344aefba091c878e5fed67 done: 41→64 tokens, queue 29 ms, TTFT 126 ms, e2e 2.33 s, length
+2026-10-05 16:09:33,024 INFO tiny_engine.server: chatcmpl-72c2dd34d1f34df29492085f63b53c0c done: 41→64 tokens, queue 29 ms, TTFT 126 ms, e2e 2.32 s, length
+2026-10-05 16:09:33,024 INFO tiny_engine.server: chatcmpl-dc5168b9d9894f81a17700ab06d2a3d0 done: 41→64 tokens, queue 29 ms, TTFT 126 ms, e2e 2.32 s, length
+2026-10-05 16:09:33,024 INFO tiny_engine.server: chatcmpl-96dfe15f1e4249b6b8e91a3b321a8d04 done: 41→64 tokens, queue 28 ms, TTFT 125 ms, e2e 2.32 s, length
+2026-10-05 16:09:33,025 INFO tiny_engine.server: chatcmpl-180560fb36c9415c8222100be5f4e230 done: 41→64 tokens, queue 28 ms, TTFT 125 ms, e2e 2.32 s, length
+2026-10-05 16:09:33,025 INFO tiny_engine.server: chatcmpl-4b874080c7954928bc95a01d2f2c9b54 done: 41→64 tokens, queue 28 ms, TTFT 125 ms, e2e 2.32 s, length
+2026-10-05 16:09:33,026 INFO tiny_engine.server: chatcmpl-94a1b5e5149c4dd3bf35e84865b428df done: 41→64 tokens, queue 28 ms, TTFT 125 ms, e2e 2.32 s, length
+2026-10-05 16:09:33,026 INFO tiny_engine.server: chatcmpl-9de4582c602b4fbf8fe038209b705684 done: 41→64 tokens, queue 27 ms, TTFT 125 ms, e2e 2.32 s, length
+2026-10-05 16:09:33,027 INFO tiny_engine.server: chatcmpl-9a5c78d31944467a8cb30c5e23c98812 done: 41→64 tokens, queue 27 ms, TTFT 124 ms, e2e 2.32 s, length
+2026-10-05 16:09:33,027 INFO tiny_engine.server: chatcmpl-01c0cb917e554abe8561149de37b6622 done: 41→64 tokens, queue 27 ms, TTFT 124 ms, e2e 2.32 s, length
+2026-10-05 16:09:33,027 INFO tiny_engine.server: chatcmpl-8ebe28453a564b408cffec9d4e51321e done: 41→64 tokens, queue 26 ms, TTFT 123 ms, e2e 2.32 s, length
+2026-10-05 16:09:33,028 INFO tiny_engine.server: chatcmpl-c52bce2b90444a8f929a1b208dec842b done: 41→64 tokens, queue 24 ms, TTFT 122 ms, e2e 2.32 s, length
+2026-10-05 16:09:33,028 INFO tiny_engine.server: chatcmpl-62e81c47d8684f21bf8b686ac9227f3b done: 41→64 tokens, queue 24 ms, TTFT 121 ms, e2e 2.32 s, length
+2026-10-05 16:09:33,028 INFO tiny_engine.server: chatcmpl-45f48f395cc94dccaf41e642497991ba done: 41→64 tokens, queue 24 ms, TTFT 121 ms, e2e 2.32 s, length
+2026-10-05 16:09:33,029 INFO tiny_engine.server: chatcmpl-34505fe245154303a97aef7db08b65ed done: 41→64 tokens, queue 24 ms, TTFT 121 ms, e2e 2.32 s, length
+INFO:     127.0.0.1:52634 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52648 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52664 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52666 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52668 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52678 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52692 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52708 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52724 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52740 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52744 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52746 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52758 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52772 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52782 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:35,331 INFO tiny_engine.server: chatcmpl-21bebc4a1c274ff6bb92968da3957a71 done: 41→64 tokens, queue 32 ms, TTFT 77 ms, e2e 2.34 s, length
+INFO:     127.0.0.1:60950 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:35,368 INFO tiny_engine.server: chatcmpl-70431fba4a6d4335a94d2b109af34297 done: 41→64 tokens, queue 23 ms, TTFT 119 ms, e2e 2.32 s, length
+2026-10-05 16:09:35,368 INFO tiny_engine.server: chatcmpl-cfcb52fd6b72456e90fa8e8274c3dbf7 done: 41→64 tokens, queue 22 ms, TTFT 118 ms, e2e 2.32 s, length
+2026-10-05 16:09:35,369 INFO tiny_engine.server: chatcmpl-61bc14481b3f4d04823199d1e20a3e70 done: 41→64 tokens, queue 19 ms, TTFT 115 ms, e2e 2.32 s, length
+2026-10-05 16:09:35,369 INFO tiny_engine.server: chatcmpl-e842947dbdda40058a99becc97676fdd done: 41→64 tokens, queue 19 ms, TTFT 115 ms, e2e 2.32 s, length
+2026-10-05 16:09:35,369 INFO tiny_engine.server: chatcmpl-46b27b50e8364bf7a2c84265b1546172 done: 41→64 tokens, queue 19 ms, TTFT 115 ms, e2e 2.32 s, length
+2026-10-05 16:09:35,369 INFO tiny_engine.server: chatcmpl-83d10bf5b5f149c88f82473c6f45c3b1 done: 41→64 tokens, queue 17 ms, TTFT 114 ms, e2e 2.32 s, length
+2026-10-05 16:09:35,370 INFO tiny_engine.server: chatcmpl-8d0f2435b86444bd86e48c7e9d7a8fce done: 41→64 tokens, queue 15 ms, TTFT 111 ms, e2e 2.31 s, length
+2026-10-05 16:09:35,370 INFO tiny_engine.server: chatcmpl-61c8b16313ae4df9b20b45471f62a657 done: 41→64 tokens, queue 15 ms, TTFT 111 ms, e2e 2.31 s, length
+2026-10-05 16:09:35,371 INFO tiny_engine.server: chatcmpl-b9092540de4240a38aa6d58baccd895d done: 41→64 tokens, queue 14 ms, TTFT 111 ms, e2e 2.31 s, length
+2026-10-05 16:09:35,372 INFO tiny_engine.server: chatcmpl-5804dcbb2afa4ac298f3833b19ab6183 done: 41→64 tokens, queue 14 ms, TTFT 110 ms, e2e 2.31 s, length
+2026-10-05 16:09:35,372 INFO tiny_engine.server: chatcmpl-43b6616982c84b9aaab5cda79d339f65 done: 41→64 tokens, queue 12 ms, TTFT 108 ms, e2e 2.31 s, length
+2026-10-05 16:09:35,372 INFO tiny_engine.server: chatcmpl-0b1456ea32ce443aa7715afde5dbcce8 done: 41→64 tokens, queue 11 ms, TTFT 108 ms, e2e 2.31 s, length
+2026-10-05 16:09:35,373 INFO tiny_engine.server: chatcmpl-3265a91ee3b241b2be35265ccf363765 done: 41→64 tokens, queue 11 ms, TTFT 107 ms, e2e 2.31 s, length
+2026-10-05 16:09:35,373 INFO tiny_engine.server: chatcmpl-d650246bd81b4b0cbd38bdf9bf0dd9e7 done: 41→64 tokens, queue 11 ms, TTFT 107 ms, e2e 2.31 s, length
+2026-10-05 16:09:35,373 INFO tiny_engine.server: chatcmpl-5c85f2190bc14204bc5000e87492277e done: 41→64 tokens, queue 11 ms, TTFT 107 ms, e2e 2.31 s, length
+INFO:     127.0.0.1:60960 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60970 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60982 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60992 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32774 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32790 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32800 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32814 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32830 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32844 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32860 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32876 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32884 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32886 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32900 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:37,684 INFO tiny_engine.server: chatcmpl-db887eaa4e6d4d93b862b41ffeadfb5a done: 41→64 tokens, queue 30 ms, TTFT 73 ms, e2e 2.35 s, length
+INFO:     127.0.0.1:32902 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:37,721 INFO tiny_engine.server: chatcmpl-23ce05a46c894ddab59b195977f7a706 done: 41→64 tokens, queue 22 ms, TTFT 121 ms, e2e 2.33 s, length
+2026-10-05 16:09:37,721 INFO tiny_engine.server: chatcmpl-20cb1f7169754b9584d94bb0cbbdf6f4 done: 41→64 tokens, queue 20 ms, TTFT 119 ms, e2e 2.33 s, length
+2026-10-05 16:09:37,722 INFO tiny_engine.server: chatcmpl-77f54b86d2d34aca942670086f5b69ad done: 41→64 tokens, queue 19 ms, TTFT 118 ms, e2e 2.33 s, length
+2026-10-05 16:09:37,722 INFO tiny_engine.server: chatcmpl-9fbd05c63770469fba8dec64909b6322 done: 41→64 tokens, queue 19 ms, TTFT 117 ms, e2e 2.33 s, length
+2026-10-05 16:09:37,722 INFO tiny_engine.server: chatcmpl-e311bffa61774a1d8eeccfa73abb437c done: 41→64 tokens, queue 18 ms, TTFT 116 ms, e2e 2.33 s, length
+2026-10-05 16:09:37,723 INFO tiny_engine.server: chatcmpl-9289c960dfc0471ea9adc7ffbb8841c1 done: 41→64 tokens, queue 16 ms, TTFT 114 ms, e2e 2.32 s, length
+2026-10-05 16:09:37,724 INFO tiny_engine.server: chatcmpl-6ab467f75a9141aab1990eb970ec0976 done: 41→64 tokens, queue 12 ms, TTFT 111 ms, e2e 2.32 s, length
+2026-10-05 16:09:37,724 INFO tiny_engine.server: chatcmpl-7da1474bf29e427d9cf877284358ed33 done: 41→64 tokens, queue 12 ms, TTFT 110 ms, e2e 2.32 s, length
+2026-10-05 16:09:37,724 INFO tiny_engine.server: chatcmpl-b0f218f3f62e4c82be99c38708c33664 done: 41→64 tokens, queue 12 ms, TTFT 110 ms, e2e 2.32 s, length
+2026-10-05 16:09:37,724 INFO tiny_engine.server: chatcmpl-c1a91e61a3f1440b9b06c6f206c1ceba done: 41→64 tokens, queue 11 ms, TTFT 110 ms, e2e 2.32 s, length
+2026-10-05 16:09:37,725 INFO tiny_engine.server: chatcmpl-0becdaf4b68f45f3a8fbf0498be43461 done: 41→64 tokens, queue 11 ms, TTFT 110 ms, e2e 2.32 s, length
+2026-10-05 16:09:37,725 INFO tiny_engine.server: chatcmpl-6100dcbb9b6941e5a1bbf8e70f75e282 done: 41→64 tokens, queue 11 ms, TTFT 109 ms, e2e 2.32 s, length
+2026-10-05 16:09:37,725 INFO tiny_engine.server: chatcmpl-412a9074f0c2411c8f7272f38e0e46fc done: 41→64 tokens, queue 11 ms, TTFT 109 ms, e2e 2.32 s, length
+2026-10-05 16:09:37,726 INFO tiny_engine.server: chatcmpl-61b1e4ba0ea0467d894c6f55775197ef done: 41→64 tokens, queue 10 ms, TTFT 109 ms, e2e 2.32 s, length
+2026-10-05 16:09:37,726 INFO tiny_engine.server: chatcmpl-4acd81bbd57c4562b207cc83423d6151 done: 41→64 tokens, queue 10 ms, TTFT 109 ms, e2e 2.32 s, length
+INFO:     127.0.0.1:32918 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32920 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32930 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32942 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32928 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32958 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32990 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32992 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32964 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32976 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33006 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33012 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33022 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33038 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33050 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+2026-10-05 16:09:40,024 INFO tiny_engine.server: chatcmpl-720ef3fefb3e49beb84f81e34fb579d8 done: 41→64 tokens, queue 30 ms, TTFT 75 ms, e2e 2.33 s, length
+2026-10-05 16:09:40,060 INFO tiny_engine.server: chatcmpl-5dbd6e2a0f7a4975b5dc460721c88d42 done: 41→64 tokens, queue 21 ms, TTFT 119 ms, e2e 2.32 s, length
+2026-10-05 16:09:40,061 INFO tiny_engine.server: chatcmpl-744fa2efb770465089c548291e821b10 done: 41→64 tokens, queue 20 ms, TTFT 118 ms, e2e 2.31 s, length
+2026-10-05 16:09:40,061 INFO tiny_engine.server: chatcmpl-ccf2f7caf8c04327a0cda5ee5445ee94 done: 41→64 tokens, queue 18 ms, TTFT 116 ms, e2e 2.31 s, length
+2026-10-05 16:09:40,061 INFO tiny_engine.server: chatcmpl-1d92b189d5564f949c9588aab1bff440 done: 41→64 tokens, queue 18 ms, TTFT 116 ms, e2e 2.31 s, length
+2026-10-05 16:09:40,061 INFO tiny_engine.server: chatcmpl-d92e8701cec144d09b75f2cc1834aa58 done: 41→64 tokens, queue 18 ms, TTFT 115 ms, e2e 2.31 s, length
+2026-10-05 16:09:40,062 INFO tiny_engine.server: chatcmpl-cc1c92ad3def4533bc73808b7669995e done: 41→64 tokens, queue 15 ms, TTFT 112 ms, e2e 2.31 s, length
+2026-10-05 16:09:40,062 INFO tiny_engine.server: chatcmpl-985fd904c61d49fc8ed64917e452a4cb done: 41→64 tokens, queue 15 ms, TTFT 112 ms, e2e 2.31 s, length
+2026-10-05 16:09:40,062 INFO tiny_engine.server: chatcmpl-6ad858648f374e88a5c94213089eb5f2 done: 41→64 tokens, queue 14 ms, TTFT 112 ms, e2e 2.31 s, length
+2026-10-05 16:09:40,062 INFO tiny_engine.server: chatcmpl-c90f187faa054cf8a2149a14d80f3c29 done: 41→64 tokens, queue 12 ms, TTFT 109 ms, e2e 2.31 s, length
+2026-10-05 16:09:40,063 INFO tiny_engine.server: chatcmpl-96a9fa573af0497fa272b8bcb6cfc69f done: 41→64 tokens, queue 12 ms, TTFT 109 ms, e2e 2.31 s, length
+2026-10-05 16:09:40,063 INFO tiny_engine.server: chatcmpl-97faa0d2a82c490bb76403894bbcfb69 done: 41→64 tokens, queue 11 ms, TTFT 109 ms, e2e 2.31 s, length
+2026-10-05 16:09:40,063 INFO tiny_engine.server: chatcmpl-0cadcc54034a41b285df802d14a8eb72 done: 41→64 tokens, queue 11 ms, TTFT 108 ms, e2e 2.31 s, length
+2026-10-05 16:09:40,063 INFO tiny_engine.server: chatcmpl-af7108b69469456495e6148f424ef12a done: 41→64 tokens, queue 11 ms, TTFT 108 ms, e2e 2.31 s, length
+2026-10-05 16:09:40,063 INFO tiny_engine.server: chatcmpl-151e9872d1094809800c83cd97c9baed done: 41→64 tokens, queue 10 ms, TTFT 107 ms, e2e 2.30 s, length
+2026-10-05 16:09:40,064 INFO tiny_engine.server: chatcmpl-ea1898bcc7724095877e81e911ae2f03 done: 41→64 tokens, queue 9 ms, TTFT 107 ms, e2e 2.30 s, length
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2026-10-05 16:09:41,362 INFO tiny_engine.async_engine: engine loop stopped
+INFO:     Application shutdown complete.
+INFO:     Finished server process [73996]
+/usr/lib/python3.14/multiprocessing/resource_tracker.py:396: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown: {'/mp-qz40wzx5'}
+  warnings.warn(

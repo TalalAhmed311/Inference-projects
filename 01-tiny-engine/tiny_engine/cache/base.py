@@ -10,6 +10,9 @@ import torch
 class KVCacheManager(ABC):
     block_size: int = 1
     num_slots: int = 0
+    # True when every sequence's slots are a contiguous arange → attention can slice (view)
+    # instead of gather-copy. ContiguousKVManager is True; PagedKVManager is False.
+    slots_are_contiguous: bool = False
 
     def __init__(self):
         self.prefix_queries = 0  # prompt tokens looked up in the prefix cache

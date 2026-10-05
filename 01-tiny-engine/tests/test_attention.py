@@ -43,7 +43,8 @@ def test_paged_attention_matches_dense(manager):
         q_lens = [n for _, _, n in chunks]
         ctx = [start + n for _, start, n in chunks]
         table = kv.slot_table([s for s, _, _ in chunks], ctx, torch.device("cpu"))
-        meta = build_metadata(q_lens, ctx, table, short_query_max=8)
+        meta = build_metadata(q_lens, ctx, table, short_query_max=8,
+                              slots_are_contiguous=manager == "contiguous")
         cat = lambda d: torch.cat([d[s][start:start + n] for s, start, n in chunks])  # noqa: E731
         return paged_attention(cat(q), cat(k), cat(v), k_cache, v_cache, meta, SCALE)
 

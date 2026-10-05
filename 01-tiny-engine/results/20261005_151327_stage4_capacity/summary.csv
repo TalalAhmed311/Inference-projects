@@ -1,0 +1,4 @@
+mode,kv_slots,requests,aborted,wall_s,req_per_s,output_tok_per_s,total_tok_per_s,ttft_p50_ms,ttft_p99_ms,tpot_p50_ms,tpot_p99_ms,e2e_p50_s,e2e_p99_s,cached_prompt_tokens,prompt_tokens,preemptions,running_mean,running_peak,kv_reserved_mean,kv_used_mean,kv_waste_mean,fragmentation_mean,mean_output_tokens
+contiguous/max_model_len,18724,64,0,306.3402,0.2089,65.5937,128.9024,149411.1364,296581.6591,29.7205,30.8252,164.4652,300.6935,0,19394,0,1.9628,2,0.8587,0.0529,0.9387,0.0007,313.9688
+contiguous/max_tokens,18724,64,0,76.7726,0.8336,254.3745,506.9905,28333.7431,64806.0735,42.8376,44.4587,42.7888,75.3916,0,19394,0,10.5731,13,0.7525,0.2817,0.6215,0.5458,305.1406
+paged,18720,64,0,50.404,1.2697,407.7852,792.5563,1119.8127,29008.0156,81.8537,198.1366,30.49,49.5272,0,19394,32,25.2651,59,0.6879,0.6778,0.0136,,321.1562

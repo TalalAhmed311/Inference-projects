@@ -25,6 +25,7 @@ class ContiguousKVManager(KVCacheManager):
         super().__init__()
         self.block_size = 1
         self.num_slots = num_slots
+        self.slots_are_contiguous = True
         self.free_ranges: list[tuple[int, int]] = [(0, num_slots)]  # (start, length), sorted by start
         self.regions: dict[str, tuple[int, int]] = {}  # seq_id → (start, size)
         self.used: dict[str, int] = {}

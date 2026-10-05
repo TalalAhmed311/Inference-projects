@@ -45,7 +45,10 @@ class CachedModelRunner:
         positions = torch.tensor(flat_pos, dtype=torch.long, device=self.device)
 
         slot_table = self.kv.slot_table([it.seq_id for it in items], ctx_lens, self.device)
-        meta = build_metadata(q_lens, ctx_lens, slot_table, self.short_query_max)
+        meta = build_metadata(
+            q_lens, ctx_lens, slot_table, self.short_query_max,
+            slots_are_contiguous=bool(getattr(self.kv, "slots_are_contiguous", False)),
+        )
         hidden = self.forward_impl.forward(input_ids, positions, meta, self.pool)
         self.tokens_processed += len(flat_tokens)
 

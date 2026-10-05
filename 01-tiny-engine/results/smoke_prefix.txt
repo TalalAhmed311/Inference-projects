@@ -1,0 +1,22 @@
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/338 [00:00<?, ?it/s]Loading weights: 100%|██████████| 338/338 [00:00<00:00, 4441.74it/s]
+INFO httpx: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct "HTTP/1.1 200 OK"
+INFO tiny_engine.model.loader: loaded Qwen/Qwen2.5-1.5B-Instruct on cuda (bfloat16): 2.88 GiB weights in 0.7 s
+INFO tiny_engine.cache.pool: KV budget: 15.65 GiB (total 22.06 GiB × 0.90 − peak 3.39 GiB − non-torch 0.31 GiB − headroom 0.50 GiB)
+INFO tiny_engine.engine: KV cache: paged, 586128 slots (15.65 GiB, 28 KiB/token), max 71.5 full-length requests
+INFO tiny_engine.engine: engine ready: kv=paged sched=continuous block=16 prefix-cache | max_model_len=8192 | eos=[151643, 151645] | sampling defaults={'temperature': 0.7, 'top_p': 0.8, 'top_k': 20, 'repetition_penalty': 1.1}
+
+model=Qwen/Qwen2.5-1.5B-Instruct device=cuda dtype=torch.bfloat16 max_model_len=8192
+features: KV cache: paged (block 16) | scheduler: continuous (max 64 seqs) | prefix caching
+sampling defaults from generation_config: {'temperature': 0.7, 'top_p': 0.8, 'top_k': 20, 'repetition_penalty': 1.1}
+
+--- prompt (36 tokens): 'Say hello in one short sentence.'
+Hello! How can I assist you today?
+--- 10 tokens, finish_reason=stop
+    TTFT 177.8 ms | TPOT 37.01 ms | 19.6 tok/s | e2e 0.51 s
+    tokens run through the model: 45 to generate 10
+

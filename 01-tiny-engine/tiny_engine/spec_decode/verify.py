@@ -40,7 +40,7 @@ def accept_tokens(target_logits: torch.Tensor, proposal: Proposal, params: Sampl
     k = len(proposal.tokens)
     for i in range(k + 1):
         logits = target_logits[i].clone()
-        mask_fn(logits, len(emitted))
+        logits = mask_fn(logits, len(emitted)) or logits
         logits = apply_penalties(logits, prompt_ids, outputs, params)
         if params.greedy:
             choice = int(torch.argmax(logits))
