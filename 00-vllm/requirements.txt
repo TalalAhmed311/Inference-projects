@@ -1,0 +1,3 @@
+# Client-side deps for tests/ and benchmark/ (vLLM itself is installed by deployment/setup_ec2.sh)
+openai>=1.40
+httpx>=0.27
