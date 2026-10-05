@@ -1,0 +1,1086 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vLLM Stage 0 Explainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f6f3; --surface:#ffffff; --surface-2:#f0f0ec; --surface-3:#e8e8e3;
+  --border:#e2e2dc; --text:#1a1a19; --muted:#686862; --faint:#9a9a93;
+  --accent:#4f46e5; --accent-soft:#ecebff; --accent-text:#3730a3;
+  --prefill:#3b82f6; --decode:#10b981; --wait:#cfd6e0; --preempt:#ef4444;
+  --cpu:#d97706; --cpu-soft:#fdf3e2; --gpu:#16a34a; --gpu-soft:#e6f6ea;
+  --kv:#8b5cf6; --weights:#0ea5e9; --act:#f59e0b; --free:#e7e7e2;
+  --code-bg:#f3f3ef; --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+  --r1:#6366f1; --r2:#ec4899; --r3:#14b8a6; --r4:#f59e0b; --r5:#84cc16; --r6:#06b6d4;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e0f11; --surface:#16171a; --surface-2:#1d1e22; --surface-3:#26272c;
+    --border:#2b2c32; --text:#ececea; --muted:#a0a09a; --faint:#6f6f6a;
+    --accent:#8b8cf8; --accent-soft:#232449; --accent-text:#c7c8ff;
+    --wait:#3a4252; --cpu-soft:#2d2210; --gpu-soft:#11291a; --free:#2a2b30;
+    --code-bg:#1b1c20; --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e0f11; --surface:#16171a; --surface-2:#1d1e22; --surface-3:#26272c;
+  --border:#2b2c32; --text:#ececea; --muted:#a0a09a; --faint:#6f6f6a;
+  --accent:#8b8cf8; --accent-soft:#232449; --accent-text:#c7c8ff;
+  --wait:#3a4252; --cpu-soft:#2d2210; --gpu-soft:#11291a; --free:#2a2b30;
+  --code-bg:#1b1c20; --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+code,pre,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
+code{background:var(--code-bg);border:1px solid var(--border);padding:1px 5px;border-radius:5px}
+a{color:var(--accent)}
+h1,h2,h3{line-height:1.2;letter-spacing:-.02em;margin:0}
+h2{font-size:1.65rem;font-weight:750}
+h3{font-size:1.05rem;font-weight:650}
+p{margin:.6em 0}
+
+/* nav */
+.topnav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.topnav .in{max-width:1160px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
+.brand{font-weight:800;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.brand .dot{width:10px;height:10px;border-radius:3px;background:var(--accent)}
+.links{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1}
+.links::-webkit-scrollbar{display:none}
+.links a{color:var(--muted);text-decoration:none;font-size:13px;padding:6px 10px;border-radius:8px;white-space:nowrap}
+.links a:hover,.links a.on{background:var(--surface-2);color:var(--text)}
+.iconbtn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;width:34px;height:34px;cursor:pointer;flex:none;font-size:15px}
+
+main{max-width:1160px;margin:0 auto;padding:0 16px 80px}
+section{padding:56px 0 8px}
+.eyebrow{font-size:12px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.lead{color:var(--muted);max-width:760px;font-size:1.02rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+.pad{padding:20px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:860px){.g2,.g3{grid-template-columns:1fr}}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);color:var(--muted)}
+.pill.cpu{background:var(--cpu-soft);color:var(--cpu);border-color:transparent}
+.pill.gpu{background:var(--gpu-soft);color:var(--gpu);border-color:transparent}
+.pill.lap{background:var(--accent-soft);color:var(--accent-text);border-color:transparent}
+svg text{font-family:Inter,system-ui,sans-serif}
+.svgwrap{width:100%;overflow-x:auto}
+.svgwrap svg{display:block;width:100%;height:auto;min-width:640px}
+
+/* hero */
+.hero{padding:56px 0 8px}
+.hero h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:800;letter-spacing:-.035em}
+.hero h1 span{color:var(--accent)}
+.question{margin-top:22px;padding:16px 20px;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 12px 12px 0;font-size:1.08rem;color:var(--accent-text);font-weight:550;max-width:760px}
+.loop{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;align-items:center}
+.loop .step{padding:7px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:550}
+.loop .step.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.loop .arr{color:var(--faint)}
+
+/* workflow */
+.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:22px}
+@media (max-width:980px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.flow{grid-template-columns:1fr}}
+.fstep{padding:16px;position:relative}
+.fstep .n{width:26px;height:26px;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;font-size:13px;display:grid;place-items:center;margin-bottom:10px}
+.fstep h3{font-size:.95rem;margin-bottom:4px}
+.fstep p{font-size:13px;color:var(--muted);margin:4px 0 10px}
+.fstep code{font-size:11.5px;display:block;white-space:normal;word-break:break-all}
+
+/* explorer */
+.explorer{display:grid;grid-template-columns:300px minmax(0,1fr);overflow:hidden}
+@media (max-width:860px){.explorer{grid-template-columns:1fr}}
+.tree{border-right:1px solid var(--border);padding:14px 10px;background:var(--surface-2)}
+@media (max-width:860px){.tree{border-right:0;border-bottom:1px solid var(--border)}}
+.tree .row{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;font-family:"JetBrains Mono",monospace;font-size:13px;cursor:default;color:var(--muted)}
+.tree .row.file{cursor:pointer;color:var(--text)}
+.tree .row.file:hover{background:var(--surface-3)}
+.tree .row.sel{background:var(--accent);color:#fff}
+.tree .row .ic{width:16px;text-align:center;flex:none}
+.tree .row .tag{margin-left:auto;white-space:nowrap;font-size:10px;font-family:Inter;font-weight:600;padding:1px 6px;border-radius:999px}
+.tree .row .tag.cpu{background:var(--cpu-soft);color:var(--cpu)}
+.tree .row .tag.lap{background:var(--accent-soft);color:var(--accent-text)}
+.tree .row.sel .tag{background:rgba(255,255,255,.2);color:#fff}
+.detail{padding:22px 24px;min-height:420px}
+.detail h3{font-family:"JetBrains Mono",monospace;font-size:1.05rem;margin-bottom:6px}
+.detail .meta{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 14px}
+.detail ul{margin:6px 0 0;padding-left:18px}
+.detail li{margin:4px 0}
+.cmd{display:flex;align-items:center;gap:8px;background:var(--code-bg);border:1px solid var(--border);border-radius:9px;padding:9px 10px 9px 12px;margin:10px 0;font-family:"JetBrains Mono",monospace;font-size:12.5px}
+.cmd span{flex:1;overflow-x:auto;white-space:nowrap}
+.cmd button{border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:11px;border-radius:6px;padding:3px 8px;cursor:pointer;flex:none}
+.io{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+@media (max-width:560px){.io{grid-template-columns:1fr}}
+.io div{background:var(--surface-2);border-radius:10px;padding:10px 12px;font-size:13px}
+.io b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin-bottom:4px}
+
+/* stepper */
+.stepper{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:9px;padding:7px 13px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.dots{display:flex;gap:5px;margin-left:6px}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--surface-3);cursor:pointer}
+.dots i.on{background:var(--accent)}
+.explain{margin-top:14px;padding:16px 18px;border-radius:12px;background:var(--surface-2);min-height:120px}
+.explain h3{margin-bottom:6px}
+.explain .path{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--accent-text);background:var(--accent-soft);display:inline-block;padding:2px 8px;border-radius:6px;margin-top:6px}
+
+/* svg nodes */
+.node rect{fill:var(--surface);stroke:var(--border);stroke-width:1.5;transition:all .25s}
+.node text{fill:var(--text);font-size:13px;font-weight:600}
+.node text.sub{fill:var(--muted);font-size:11px;font-weight:450}
+.node.on rect{stroke:var(--accent);stroke-width:2.5;fill:var(--accent-soft)}
+.node.on text{fill:var(--accent-text)}
+.grp{fill:var(--surface-2);stroke:var(--border);stroke-dasharray:4 4}
+.grp-cpu{fill:var(--cpu-soft);stroke:none}
+.grp-gpu{fill:var(--gpu-soft);stroke:none}
+.glabel{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.edge{stroke:var(--faint);stroke-width:1.6;fill:none;transition:all .25s}
+.edge.on{stroke:var(--accent);stroke-width:2.6}
+.edge.done{stroke:var(--accent);opacity:.35}
+.t-muted{fill:var(--muted)}
+.t-text{fill:var(--text)}
+.t-faint{fill:var(--faint)}
+.f-surface{fill:var(--surface)}
+.f-surface2{fill:var(--surface-2)}
+.s-border{stroke:var(--border)}
+
+/* sim */
+.controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+@media (max-width:760px){.controls{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ctl label{display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.ctl label b{color:var(--text);font-family:"JetBrains Mono",monospace}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select{width:100%;font:inherit;font-size:13px;padding:7px 9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+.gantt-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.gantt{display:grid;font-size:11px;font-family:"JetBrains Mono",monospace;min-width:max-content}
+.gantt .h{color:var(--faint);text-align:center;padding:6px 0 4px;font-size:10px;cursor:pointer}
+.gantt .h.cur{color:var(--accent);font-weight:700}
+.gantt .lab{position:sticky;left:0;background:var(--surface);padding:0 10px;display:flex;align-items:center;gap:6px;font-weight:600;z-index:1;border-right:1px solid var(--border);white-space:nowrap}
+.gantt .lab i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.gantt .lab small{color:var(--faint);font-weight:400}
+.gantt .c{height:28px;margin:2px 1px;border-radius:4px;display:grid;place-items:center;font-size:10px;color:#fff;font-weight:600;cursor:pointer}
+.c.future{background:transparent}
+.c.waiting{background:repeating-linear-gradient(45deg,var(--wait) 0 3px,transparent 3px 6px)}
+.c.idle{background:var(--surface-3)}
+.c.prefill{background:var(--prefill)}
+.c.decode{background:var(--decode)}
+.c.preempted{background:var(--preempt)}
+.c.done{background:transparent}
+.c.dim{opacity:.28}
+.c.curcol{outline:2px solid var(--accent);outline-offset:1px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin:12px 0 0}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:14px;height:14px;border-radius:4px;display:inline-block}
+.simbottom{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;margin-top:16px}
+@media (max-width:860px){.simbottom{grid-template-columns:1fr}}
+.pool{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:4px}
+.pool div{aspect-ratio:1;border-radius:4px;background:var(--free);display:grid;place-items:center;font-size:9px;color:#fff;font-weight:700;font-family:"JetBrains Mono",monospace;transition:background .2s}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.stat{background:var(--surface-2);border-radius:10px;padding:8px 12px;min-width:90px}
+.stat b{display:block;font-size:1.15rem;font-family:"JetBrains Mono",monospace}
+.stat span{font-size:11px;color:var(--muted)}
+.budgetbar{height:10px;border-radius:999px;background:var(--surface-3);overflow:hidden;display:flex;margin:6px 0 12px}
+.budgetbar div{height:100%;transition:width .2s}
+.log{font-family:"JetBrains Mono",monospace;font-size:12px;line-height:1.7;margin:0;padding:0;list-style:none}
+.log li::before{content:"› ";color:var(--accent)}
+
+/* memory calc */
+.membar{display:flex;height:46px;border-radius:10px;overflow:hidden;background:var(--free);margin:14px 0 8px;border:1px solid var(--border)}
+.membar div{display:grid;place-items:center;color:#fff;font-size:12px;font-weight:650;white-space:nowrap;overflow:hidden;transition:width .3s}
+.big{font-size:1.6rem;font-weight:800;font-family:"JetBrains Mono",monospace;letter-spacing:-.02em}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface-2);border-radius:12px;padding:12px 14px}
+.kpi span{font-size:12px;color:var(--muted)}
+.warn{color:var(--preempt);font-weight:600}
+.formula{font-family:"JetBrains Mono",monospace;font-size:12.5px;background:var(--code-bg);border:1px solid var(--border);padding:10px 12px;border-radius:10px;margin-top:12px;overflow-x:auto;white-space:nowrap}
+
+/* timeline list */
+.vsteps{list-style:none;margin:0;padding:0;counter-reset:s}
+.vsteps li{position:relative;padding:0 0 18px 40px}
+.vsteps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border);display:grid;place-items:center;font-size:12px;font-weight:700}
+.vsteps li::after{content:"";position:absolute;left:13px;top:28px;bottom:2px;width:1px;background:var(--border)}
+.vsteps li:last-child::after{display:none}
+.vsteps b{display:block}
+.vsteps span{color:var(--muted);font-size:13.5px}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);font-weight:650}
+.tablewrap{overflow-x:auto}
+.hl{background:var(--accent-soft)}
+.bars .b{display:grid;grid-template-columns:150px minmax(0,1fr) 90px;gap:10px;align-items:center;margin:7px 0;font-size:13px}
+@media (max-width:560px){.bars .b{grid-template-columns:90px minmax(0,1fr) 70px}}
+.bars .track{height:16px;background:var(--surface-2);border-radius:6px;overflow:hidden}
+.bars .fill{height:100%;border-radius:6px}
+.note{font-size:12.5px;color:var(--muted);margin-top:10px}
+.callout{border:1px solid var(--border);border-left:4px solid var(--act);border-radius:0 10px 10px 0;padding:12px 16px;background:var(--surface);margin-top:16px;font-size:14px}
+footer{text-align:center;color:var(--faint);font-size:12px;padding:40px 16px}
+</style>
+</head>
+<body>
+
+<nav class="topnav"><div class="in">
+  <div class="brand"><span class="dot"></span>Stage 0 · vLLM</div>
+  <div class="links" id="links">
+    <a href="#workflow">Workflow</a><a href="#code">Code map</a><a href="#deploy">Deployment</a>
+    <a href="#startup">Startup &amp; memory</a><a href="#request">Request path</a><a href="#batching">Batching sim</a>
+    <a href="#perf">Prefill vs decode</a><a href="#bench">Benchmark</a><a href="#config">Configs</a><a href="#cpugpu">CPU vs GPU</a><a href="#run">Runbook</a>
+  </div>
+  <button class="iconbtn" id="theme" title="Toggle theme" aria-label="Toggle theme">◐</button>
+</div></nav>
+
+<main>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="eyebrow">LLM Inference Lab · 00-vllm</div>
+  <h1>Serving an open-source LLM with <span>vLLM</span>, end to end</h1>
+  <p class="lead">This page covers the scripts in this folder, what vLLM does from the moment you run <code>vllm serve</code> until a token reaches the client, and how the benchmark measures it. The interactive parts are a code map, a request-path walkthrough, a continuous batching simulator and a GPU memory calculator.</p>
+  <div class="question">What happens between my API request and the next generated token?</div>
+  <div class="loop">
+    <span class="step on">Production system</span><span class="arr">→</span>
+    <span class="step on">Understand the problem</span><span class="arr">→</span>
+    <span class="step on">Benchmark it</span><span class="arr">→</span>
+    <span class="step">Build a simplified version</span><span class="arr">→</span>
+    <span class="step">Compare</span><span class="arr">→</span><span class="step">Write</span>
+  </div>
+  <p class="small muted" style="margin-top:10px">Stage 0 covers the highlighted steps. It produces the baseline numbers that every later stage is compared against.</p>
+</header>
+
+<!-- WORKFLOW -->
+<section id="workflow">
+  <div class="eyebrow">01 · Workflow</div>
+  <h2>Six steps from an empty EC2 box to a results table</h2>
+  <div class="flow">
+    <div class="card fstep"><div class="n">1</div><h3>Launch EC2</h3><p>g5.xlarge (A10G 24 GB), Deep Learning Base AMI, 100 GB disk, SSH only.</p><span class="pill">AWS console</span></div>
+    <div class="card fstep"><div class="n">2</div><h3>Install</h3><p>Checks the driver, creates a venv, installs vLLM and the client libraries.</p><code>bash deployment/setup_ec2.sh</code></div>
+    <div class="card fstep"><div class="n">3</div><h3>Serve</h3><p>Starts the OpenAI-compatible server on 127.0.0.1:8000 inside tmux.</p><code>bash deployment/serve.sh</code></div>
+    <div class="card fstep"><div class="n">4</div><h3>Smoke test</h3><p>Checks the 8 API paths the benchmark relies on. Exits 1 on failure.</p><code>python tests/smoke_test.py</code></div>
+    <div class="card fstep"><div class="n">5</div><h3>Benchmark</h3><p>Sweeps 3 prompt lengths × 2 output lengths × 4 concurrency levels.</p><code>python benchmark/bench.py --tag …</code></div>
+    <div class="card fstep"><div class="n">6</div><h3>Summarize</h3><p>Turns results into a Markdown table you can paste into notes or articles.</p><code>python benchmark/summarize.py results/…</code></div>
+  </div>
+</section>
+
+<!-- CODE MAP -->
+<section id="code">
+  <div class="eyebrow">02 · Code map</div>
+  <h2>What each file does</h2>
+  <p class="lead">Click a file to see what it does, where it runs, what it reads and writes, and the parts worth reading.</p>
+  <div class="card explorer" style="margin-top:20px">
+    <div class="tree" id="tree"></div>
+    <div class="detail" id="detail"></div>
+  </div>
+  <div class="card pad" style="margin-top:16px">
+    <h3>How the files connect</h3>
+    <div class="svgwrap" style="margin-top:10px">
+<svg viewBox="0 0 1000 250" role="img" aria-label="Dependency diagram between scripts">
+  <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--faint)"/></marker></defs>
+  <g class="node"><rect x="10" y="95" width="150" height="56" rx="10"/><text x="85" y="119" text-anchor="middle">setup_ec2.sh</text><text class="sub" x="85" y="137" text-anchor="middle">creates .venv</text></g>
+  <g class="node"><rect x="215" y="95" width="150" height="56" rx="10"/><text x="290" y="119" text-anchor="middle">serve.sh</text><text class="sub" x="290" y="137" text-anchor="middle">vllm serve → :8000</text></g>
+  <rect x="420" y="70" width="170" height="106" rx="14" class="grp-gpu"/>
+  <text x="505" y="92" text-anchor="middle" class="glabel" fill="var(--gpu)">vLLM server</text>
+  <text x="505" y="118" text-anchor="middle" class="t-text" font-size="12">/v1/chat/completions</text>
+  <text x="505" y="136" text-anchor="middle" class="t-text" font-size="12">/v1/models · /health</text>
+  <text x="505" y="154" text-anchor="middle" class="t-text" font-size="12">/metrics · /version</text>
+  <g class="node"><rect x="650" y="10" width="160" height="50" rx="10"/><text x="730" y="40" text-anchor="middle">curl_examples.sh</text></g>
+  <g class="node"><rect x="650" y="98" width="160" height="50" rx="10"/><text x="730" y="128" text-anchor="middle">smoke_test.py</text></g>
+  <g class="node"><rect x="650" y="186" width="160" height="50" rx="10"/><text x="730" y="216" text-anchor="middle">bench.py</text></g>
+  <g class="node"><rect x="850" y="98" width="140" height="56" rx="10"/><text x="920" y="122" text-anchor="middle">results/&lt;run&gt;/</text><text class="sub" x="920" y="140" text-anchor="middle">csv · jsonl · json</text></g>
+  <g class="node"><rect x="850" y="186" width="140" height="50" rx="10"/><text x="920" y="216" text-anchor="middle">summarize.py</text></g>
+  <path class="edge" d="M160 123 H213" marker-end="url(#ah)"/>
+  <path class="edge" d="M365 123 H418" marker-end="url(#ah)"/>
+  <path class="edge" d="M650 35 C610 35 610 90 592 95" marker-end="url(#ah)"/>
+  <path class="edge" d="M650 123 H592" marker-end="url(#ah)"/>
+  <path class="edge" d="M650 211 C610 211 610 160 592 155" marker-end="url(#ah)"/>
+  <path class="edge" d="M810 205 C830 190 830 165 848 150" marker-end="url(#ah)"/>
+  <path class="edge" d="M920 156 V184" marker-start="url(#ah)"/>
+  <text x="383" y="112" class="t-faint" font-size="10" text-anchor="middle">starts</text>
+  <text x="187" y="112" class="t-faint" font-size="10" text-anchor="middle">venv</text>
+  <text x="835" y="188" class="t-faint" font-size="10">writes</text>
+  <text x="926" y="174" class="t-faint" font-size="10">reads</text>
+</svg>
+    </div>
+  </div>
+</section>
+
+<!-- DEPLOYMENT -->
+<section id="deploy">
+  <div class="eyebrow">03 · Deployment topology</div>
+  <h2>Where everything runs</h2>
+  <p class="lead">The server listens only on <code>127.0.0.1</code>. Your laptop reaches it through an SSH tunnel, so port 8000 is never exposed to the internet. Run the benchmark <em>on the instance</em> so it can read <code>nvidia-smi</code> and network latency doesn't add to TTFT.</p>
+  <div class="card pad" style="margin-top:20px">
+  <div class="svgwrap">
+<svg viewBox="0 0 1000 430" role="img" aria-label="Deployment diagram">
+  <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--faint)"/></marker></defs>
+  <!-- laptop -->
+  <rect x="10" y="40" width="210" height="250" rx="16" class="f-surface2 s-border" stroke-width="1"/>
+  <text x="30" y="68" class="glabel" fill="var(--accent)">Your laptop</text>
+  <g class="node"><rect x="30" y="85" width="170" height="44" rx="9"/><text x="115" y="112" text-anchor="middle">browser / curl</text></g>
+  <g class="node"><rect x="30" y="140" width="170" height="44" rx="9"/><text x="115" y="167" text-anchor="middle">rsync code ↑ results ↓</text></g>
+  <g class="node"><rect x="30" y="195" width="170" height="70" rx="9"/><text x="115" y="221" text-anchor="middle">ssh -L 8000:</text><text x="115" y="239" text-anchor="middle">localhost:8000</text><text class="sub" x="115" y="256" text-anchor="middle">localhost:8000 → EC2</text></g>
+  <!-- tunnel -->
+  <path d="M220 230 H300" stroke="var(--accent)" stroke-width="10" stroke-linecap="round" opacity=".18"/>
+  <path class="edge" d="M222 230 H298" marker-end="url(#ah2)" marker-start="url(#ah2)"/>
+  <text x="260" y="218" text-anchor="middle" class="t-muted" font-size="11">SSH :22</text>
+  <text x="260" y="252" text-anchor="middle" class="t-faint" font-size="10">encrypted</text>
+  <!-- EC2 -->
+  <rect x="300" y="10" width="690" height="410" rx="18" class="f-surface2 s-border" stroke-width="1"/>
+  <text x="322" y="38" class="glabel t-muted">EC2 g5.xlarge · Ubuntu DLAMI · security group: SSH from your IP only</text>
+  <!-- CPU side -->
+  <rect x="320" y="55" width="400" height="350" rx="14" class="grp-cpu"/>
+  <text x="338" y="80" class="glabel" fill="var(--cpu)">CPU · 4 vCPU · 16 GB RAM</text>
+  <g class="node"><rect x="338" y="95" width="364" height="86" rx="10"/><text x="352" y="118">vllm serve · API server process</text><text class="sub" x="352" y="138">FastAPI/uvicorn on 127.0.0.1:8000</text><text class="sub" x="352" y="155">chat template · tokenize · detokenize · SSE stream</text><text class="sub" x="352" y="172">/metrics (Prometheus) · /health</text></g>
+  <g class="node"><rect x="338" y="196" width="364" height="70" rx="10"/><text x="352" y="220">EngineCore process</text><text class="sub" x="352" y="240">busy loop: schedule → execute → update</text><text class="sub" x="352" y="256">KV block manager · prefix cache hash table</text></g>
+  <path class="edge" d="M520 181 V194" marker-end="url(#ah2)" marker-start="url(#ah2)"/>
+  <text x="528" y="191" class="t-faint" font-size="10">ZMQ</text>
+  <g class="node"><rect x="338" y="281" width="176" height="56" rx="10"/><text x="352" y="304">bench.py</text><text class="sub" x="352" y="322">smoke_test.py · curl</text></g>
+  <g class="node"><rect x="526" y="281" width="176" height="56" rx="10"/><text x="540" y="304">nvidia-smi</text><text class="sub" x="540" y="322">sampled every 0.5 s</text></g>
+  <g class="node"><rect x="338" y="349" width="364" height="44" rx="10"/><text x="352" y="376">EBS 100 GB · ~/.cache/huggingface (weights)</text></g>
+  <path class="edge" d="M426 281 V183" marker-end="url(#ah2)" stroke-dasharray="4 3"/>
+  <!-- GPU -->
+  <rect x="740" y="55" width="232" height="350" rx="14" class="grp-gpu"/>
+  <text x="758" y="80" class="glabel" fill="var(--gpu)">GPU · A10G · 24 GB</text>
+  <rect x="758" y="95" width="196" height="40" rx="7" fill="var(--weights)"/><text x="856" y="120" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">model weights</text>
+  <rect x="758" y="139" width="196" height="26" rx="7" fill="var(--act)"/><text x="856" y="157" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">activations + CUDA graphs</text>
+  <rect x="758" y="169" width="196" height="150" rx="7" fill="var(--kv)"/><text x="856" y="236" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">KV cache pool</text><text x="856" y="254" text-anchor="middle" fill="#fff" font-size="11" opacity=".9">16-token blocks</text>
+  <rect x="758" y="323" width="196" height="26" rx="7" class="f-surface" stroke="var(--border)"/><text x="856" y="341" text-anchor="middle" class="t-muted" font-size="11">10% left unused</text>
+  <text x="856" y="378" text-anchor="middle" class="t-muted" font-size="11">90% reserved at startup</text>
+  <text x="856" y="393" text-anchor="middle" class="t-muted" font-size="11">(--gpu-memory-utilization)</text>
+  <path class="edge" d="M702 231 H756" marker-end="url(#ah2)" marker-start="url(#ah2)"/>
+  <text x="729" y="222" text-anchor="middle" class="t-faint" font-size="10">CUDA</text>
+</svg>
+  </div>
+  </div>
+</section>
+
+<!-- STARTUP + MEMORY -->
+<section id="startup">
+  <div class="eyebrow">04 · Startup &amp; GPU memory</div>
+  <h2>What <code style="font-size:.85em">vllm serve</code> does before the first request</h2>
+  <div class="grid g2" style="margin-top:20px;align-items:start">
+    <div class="card pad">
+      <ol class="vsteps">
+        <li><b>Parse config</b><span>Flags, YAML, env vars and the model's <code>config.json</code> are combined into one <code>VllmConfig</code>.</span></li>
+        <li><b>Download weights</b><span><code>.safetensors</code> files from the Hugging Face Hub are saved to <code>~/.cache/huggingface</code>. Only the first run downloads them.</span></li>
+        <li><b>Spawn processes</b><span>The API server and EngineCore run as separate processes and talk over ZMQ. There's one GPU worker per GPU.</span></li>
+        <li><b>Load weights to GPU</b><span>A 1.5B model in bf16 is about 3 GB; a 7B model is about 15 GB.</span></li>
+        <li><b>Profile run</b><span>A dummy forward pass at maximum batch size measures peak activation memory.</span></li>
+        <li><b>Allocate KV cache</b><span>Whatever is left of the reserved memory becomes the KV block pool. The log shows <em>"GPU KV cache size: N tokens"</em> and <em>"Maximum concurrency"</em>.</span></li>
+        <li><b>Capture CUDA graphs</b><span>Decode steps for common batch sizes are recorded once and replayed later with one launch each.</span></li>
+        <li><b>Start HTTP</b><span>uvicorn starts listening on :8000. <code>/health</code> returns 200.</span></li>
+      </ol>
+    </div>
+    <div class="card pad">
+      <h3>GPU memory calculator</h3>
+      <p class="small muted">This is the most important calculation when deploying. Pick a GPU and a model to see how many tokens of KV cache fit.</p>
+      <div class="controls" style="grid-template-columns:1fr 1fr;margin:12px 0 0">
+        <div class="ctl"><label>GPU</label><select id="m-gpu"></select></div>
+        <div class="ctl"><label>Model</label><select id="m-model"></select></div>
+        <div class="ctl"><label>Weight precision</label><select id="m-wq"><option value="2">bf16 / fp16</option><option value="1">fp8 / int8</option><option value="0.55">int4 (AWQ/GPTQ)</option></select></div>
+        <div class="ctl"><label>KV cache dtype</label><select id="m-kvq"><option value="2">bf16 (auto)</option><option value="1">fp8</option></select></div>
+        <div class="ctl"><label>gpu-memory-utilization <b id="m-util-v"></b></label><input type="range" id="m-util" min="0.5" max="0.98" step="0.01" value="0.9"></div>
+        <div class="ctl"><label>max-model-len <b id="m-len-v"></b></label><input type="range" id="m-len" min="9" max="17" step="1" value="13"></div>
+      </div>
+      <div class="membar" id="m-bar"></div>
+      <div class="legend" style="margin-top:4px">
+        <span><i style="background:var(--weights)"></i>weights</span><span><i style="background:var(--act)"></i>activations (est.)</span><span><i style="background:var(--kv)"></i>KV cache</span><span><i style="background:var(--free)"></i>not reserved</span>
+      </div>
+      <div class="kpis" id="m-kpis"></div>
+      <div class="formula" id="m-formula"></div>
+      <p class="note">Estimates. vLLM measures activation memory with its profile run; this calculator assumes about 1.5 GB. The decode floor is weights ÷ memory bandwidth: the fastest a single request can generate tokens.</p>
+    </div>
+  </div>
+</section>
+
+<!-- REQUEST PATH -->
+<section id="request">
+  <div class="eyebrow">05 · Request lifecycle</div>
+  <h2>The path of one request, step by step</h2>
+  <p class="lead">Step through it with the buttons below. Each step names the vLLM source file where that work happens (V1 engine; paths change between versions).</p>
+  <div class="card pad" style="margin-top:20px">
+    <div class="svgwrap"><svg id="req-svg" viewBox="0 0 1000 330" role="img" aria-label="Request path diagram"></svg></div>
+    <div class="stepper">
+      <button class="btn" id="rq-prev">← Prev</button>
+      <button class="btn primary" id="rq-next">Next →</button>
+      <button class="btn" id="rq-play">▶ Auto</button>
+      <div class="dots" id="rq-dots"></div>
+    </div>
+    <div class="explain" id="rq-explain"></div>
+  </div>
+</section>
+
+<!-- BATCHING SIM -->
+<section id="batching">
+  <div class="eyebrow">06 · Engine loop, continuous batching &amp; paged KV</div>
+  <h2>Continuous batching simulator</h2>
+  <p class="lead">Six requests arrive at different times. On every engine step, the scheduler fills a <b>token budget</b>: requests already running get 1 decode token each, then waiting requests are admitted with chunks of their prompt (prefill). Each request's KV cache lives in 16-token <b>blocks</b> from a shared pool. When the pool runs out, a request is <b>preempted</b> and later recomputed. Change the settings to see how the schedule changes.</p>
+  <div class="card pad" style="margin-top:20px">
+    <div class="controls">
+      <div class="ctl"><label>Token budget / step <b id="s-budget-v"></b></label><input type="range" id="s-budget" min="64" max="512" step="32" value="128"></div>
+      <div class="ctl"><label>max-num-seqs <b id="s-seqs-v"></b></label><input type="range" id="s-seqs" min="1" max="6" step="1" value="4"></div>
+      <div class="ctl"><label>KV pool (blocks) <b id="s-blocks-v"></b></label><input type="range" id="s-blocks" min="20" max="64" step="4" value="32"></div>
+      <div class="ctl"><label>Step <b id="s-step-v"></b></label><input type="range" id="s-step" min="0" max="10" step="1" value="0"></div>
+    </div>
+    <div class="stepper" style="margin:0 0 14px">
+      <button class="btn" id="s-prev">← Step</button>
+      <button class="btn primary" id="s-play">▶ Play</button>
+      <button class="btn" id="s-next">Step →</button>
+      <button class="btn" id="s-reset">Reset</button>
+      <span class="small muted" id="s-summary" style="margin-left:6px"></span>
+    </div>
+    <div class="gantt-wrap"><div class="gantt" id="gantt"></div></div>
+    <div class="legend">
+      <span><i style="background:var(--prefill)"></i>prefill (tokens computed)</span>
+      <span><i style="background:var(--decode)"></i>decode (1 token)</span>
+      <span><i style="background:repeating-linear-gradient(45deg,var(--wait) 0 3px,transparent 3px 6px)"></i>waiting in queue</span>
+      <span><i style="background:var(--surface-3)"></i>running, no budget left</span>
+      <span><i style="background:var(--preempt)"></i>preempted</span>
+      <span>★ first token (TTFT) &nbsp;✓ finished</span>
+    </div>
+    <div class="simbottom">
+      <div>
+        <h3 style="margin-bottom:10px">Step <span id="s-stepno">0</span>: what the scheduler did</h3>
+        <div class="stats" id="s-stats"></div>
+        <div class="small muted">Token budget used</div>
+        <div class="budgetbar" id="s-budgetbar"></div>
+        <ul class="log" id="s-log"></ul>
+      </div>
+      <div>
+        <h3 style="margin-bottom:10px">KV cache block pool (GPU memory)</h3>
+        <div class="pool" id="s-pool"></div>
+        <p class="note">Each square is one 16-token block, colored by the request that owns it. A request's blocks can be anywhere in the pool. Its <em>block table</em> maps logical positions to physical blocks, which is the core idea of PagedAttention. When a request finishes, its blocks go back to the free list.</p>
+      </div>
+    </div>
+  </div>
+  <div class="callout"><b>What to notice:</b> new requests join while others are mid-generation. That's continuous batching, and there are no batch boundaries. A long prompt (D, 300 tokens) is split across several steps when the budget is small (chunked prefill). Raising the budget lowers TTFT. Shrinking the KV pool forces requests to wait or be preempted.</div>
+</section>
+
+<!-- PERF -->
+<section id="perf">
+  <div class="eyebrow">07 · Prefill vs decode</div>
+  <h2>Where TTFT and TPOT come from</h2>
+  <div class="grid g2" style="margin-top:20px">
+    <div class="card pad">
+      <h3>One streaming request</h3>
+      <div class="svgwrap"><svg viewBox="0 0 520 210" style="min-width:420px" role="img" aria-label="Request timeline">
+        <defs><marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+        <line x1="10" y1="100" x2="510" y2="100" stroke="var(--border)" stroke-width="2"/>
+        <rect x="20" y="82" width="50" height="36" rx="6" fill="var(--wait)"/><text x="45" y="105" text-anchor="middle" font-size="11" class="t-text">queue</text>
+        <rect x="72" y="82" width="110" height="36" rx="6" fill="var(--prefill)"/><text x="127" y="105" text-anchor="middle" font-size="11" fill="#fff" font-weight="600">prefill (all prompt)</text>
+        <g fill="var(--decode)">
+          <rect x="184" y="82" width="10" height="36" rx="3"/><rect x="222" y="82" width="10" height="36" rx="3"/><rect x="260" y="82" width="10" height="36" rx="3"/><rect x="298" y="82" width="10" height="36" rx="3"/><rect x="336" y="82" width="10" height="36" rx="3"/><rect x="374" y="82" width="10" height="36" rx="3"/><rect x="412" y="82" width="10" height="36" rx="3"/><rect x="450" y="82" width="10" height="36" rx="3"/><rect x="488" y="82" width="10" height="36" rx="3"/>
+        </g>
+        <text x="189" y="138" text-anchor="middle" font-size="10" class="t-muted">t1</text><text x="227" y="138" text-anchor="middle" font-size="10" class="t-muted">t2</text><text x="265" y="138" text-anchor="middle" font-size="10" class="t-muted">t3</text><text x="493" y="138" text-anchor="middle" font-size="10" class="t-muted">tN</text>
+        <path d="M20 66 V58 H189 V66" fill="none" stroke="var(--prefill)" stroke-width="1.5"/><text x="104" y="50" text-anchor="middle" font-size="12" font-weight="700" fill="var(--prefill)">TTFT</text>
+        <path d="M189 66 V58 H227 V66" fill="none" stroke="var(--decode)" stroke-width="1.5"/><text x="208" y="50" text-anchor="middle" font-size="12" font-weight="700" fill="var(--decode)">TPOT</text>
+        <path d="M20 160 V168 H498 V160" fill="none" stroke="var(--muted)" stroke-width="1.5"/><text x="259" y="186" text-anchor="middle" font-size="12" font-weight="700" class="t-muted">end-to-end latency (e2e)</text>
+        <text x="259" y="204" text-anchor="middle" font-size="10.5" class="t-faint">TPOT = (e2e − TTFT) / (output_tokens − 1)</text>
+      </svg></div>
+      <div class="tablewrap" style="margin-top:10px"><table>
+        <tr><th></th><th>Prefill</th><th>Decode</th></tr>
+        <tr><td>Work</td><td>all prompt tokens at once</td><td>1 token per request per step</td></tr>
+        <tr><td>Bottleneck</td><td><b>compute</b> (big matmuls)</td><td><b>memory bandwidth</b> (read all weights + KV)</td></tr>
+        <tr><td>Shows up as</td><td>TTFT grows with prompt length</td><td>TPOT ≈ step time</td></tr>
+      </table></div>
+    </div>
+    <div class="card pad">
+      <h3>Why batching is nearly free (toy model)</h3>
+      <p class="small muted">Qwen2.5-1.5B on an A10G with 1024 tokens of context per request. Every decode step reads all the weights once, however many requests are in the batch, so adding requests raises total throughput far more than it slows each one.</p>
+      <div class="ctl" style="margin-top:10px"><label>Concurrent requests (batch) <b id="b-c-v"></b></label><input type="range" id="b-c" min="0" max="8" step="1" value="0"></div>
+      <div class="kpis" id="b-kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
+      <div class="svgwrap" style="margin-top:12px"><svg id="b-chart" viewBox="0 0 480 220" style="min-width:380px" role="img" aria-label="Throughput and TPOT vs batch size"></svg></div>
+      <p class="note">step time = max(bytes read ÷ 600 GB/s, FLOPs ÷ ~75 TFLOPS) + ~1.5 ms overhead. These are rough numbers; your benchmark measures the real curve.</p>
+    </div>
+  </div>
+</section>
+
+<!-- BENCHMARK -->
+<section id="bench">
+  <div class="eyebrow">08 · bench.py internals</div>
+  <h2>How the benchmark measures the server</h2>
+  <div class="card pad" style="margin-top:20px">
+  <div class="svgwrap">
+<svg viewBox="0 0 1000 300" role="img" aria-label="Benchmark architecture">
+  <defs><marker id="ah4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--faint)"/></marker></defs>
+  <rect x="10" y="20" width="560" height="270" rx="16" class="f-surface2"/>
+  <text x="28" y="46" class="glabel" fill="var(--accent)">bench.py · asyncio</text>
+  <g class="node"><rect x="28" y="62" width="150" height="150" rx="10"/><text x="103" y="86" text-anchor="middle">prompt queue</text><text class="sub" x="103" y="104" text-anchor="middle">num_requests random</text><text class="sub" x="103" y="119" text-anchor="middle">prompts (seeded)</text>
+    <g fill="var(--prefill)" opacity=".85"><rect x="48" y="132" width="110" height="10" rx="3"/><rect x="48" y="147" width="110" height="10" rx="3"/><rect x="48" y="162" width="110" height="10" rx="3"/><rect x="48" y="177" width="110" height="10" rx="3"/><rect x="48" y="192" width="110" height="10" rx="3" opacity=".4"/></g></g>
+  <g class="node"><rect x="225" y="62" width="150" height="36" rx="8"/><text x="300" y="85" text-anchor="middle" font-size="12">worker 1</text></g>
+  <g class="node"><rect x="225" y="106" width="150" height="36" rx="8"/><text x="300" y="129" text-anchor="middle" font-size="12">worker 2</text></g>
+  <g class="node"><rect x="225" y="150" width="150" height="36" rx="8"/><text x="300" y="173" text-anchor="middle" font-size="12">…</text></g>
+  <g class="node"><rect x="225" y="194" width="150" height="36" rx="8"/><text x="300" y="217" text-anchor="middle" font-size="12">worker C</text></g>
+  <text x="300" y="252" text-anchor="middle" class="t-muted" font-size="11">C = concurrency · closed loop:</text>
+  <text x="300" y="268" text-anchor="middle" class="t-muted" font-size="11">send → stream → finish → next</text>
+  <path class="edge" d="M178 137 H223" marker-end="url(#ah4)"/>
+  <g class="node"><rect x="410" y="62" width="145" height="110" rx="10"/><text x="482" y="86" text-anchor="middle">run_one()</text><text class="sub" x="482" y="106" text-anchor="middle">stream=True</text><text class="sub" x="482" y="122" text-anchor="middle">ignore_eos=True</text><text class="sub" x="482" y="138" text-anchor="middle">include_usage</text><text class="sub" x="482" y="156" text-anchor="middle">→ TTFT, e2e, tokens</text></g>
+  <path class="edge" d="M375 120 H408" marker-end="url(#ah4)"/>
+  <g class="node"><rect x="410" y="190" width="145" height="80" rx="10"/><text x="482" y="214" text-anchor="middle">Sampler task</text><text class="sub" x="482" y="234" text-anchor="middle">every 0.5 s:</text><text class="sub" x="482" y="250" text-anchor="middle">nvidia-smi + /metrics</text></g>
+  <rect x="610" y="20" width="160" height="270" rx="16" class="grp-gpu"/>
+  <text x="690" y="46" text-anchor="middle" class="glabel" fill="var(--gpu)">vLLM :8000</text>
+  <text x="690" y="120" text-anchor="middle" class="t-text" font-size="12">/v1/chat/completions</text>
+  <text x="690" y="230" text-anchor="middle" class="t-text" font-size="12">/metrics</text>
+  <text x="690" y="246" text-anchor="middle" class="t-muted" font-size="10.5">running · waiting · KV %</text>
+  <path class="edge" d="M555 117 H608" marker-end="url(#ah4)" marker-start="url(#ah4)"/>
+  <path class="edge" d="M555 230 H608" marker-end="url(#ah4)"/>
+  <rect x="810" y="20" width="180" height="270" rx="16" class="f-surface2"/>
+  <text x="900" y="46" text-anchor="middle" class="glabel t-muted">results/&lt;ts&gt;_&lt;tag&gt;/</text>
+  <g class="node"><rect x="826" y="62" width="148" height="44" rx="8"/><text x="900" y="82" text-anchor="middle" font-size="12">summary.csv</text><text class="sub" x="900" y="98" text-anchor="middle">1 row per config</text></g>
+  <g class="node"><rect x="826" y="114" width="148" height="44" rx="8"/><text x="900" y="134" text-anchor="middle" font-size="12">requests.jsonl</text><text class="sub" x="900" y="150" text-anchor="middle">every request</text></g>
+  <g class="node"><rect x="826" y="166" width="148" height="44" rx="8"/><text x="900" y="186" text-anchor="middle" font-size="12">gpu_samples.jsonl</text><text class="sub" x="900" y="202" text-anchor="middle">time series</text></g>
+  <g class="node"><rect x="826" y="218" width="148" height="44" rx="8"/><text x="900" y="238" text-anchor="middle" font-size="12">env.json</text><text class="sub" x="900" y="254" text-anchor="middle">model · GPU · args</text></g>
+  <path class="edge" d="M770 160 H824" marker-end="url(#ah4)"/>
+</svg>
+  </div>
+  </div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card pad">
+      <h3>The sweep: 3 × 2 × 4 = 24 configurations</h3>
+      <p class="small muted">Each cell is one (prompt length, output length) pair, run at every concurrency level. The number of requests per config is max(8, 4 × C). <code>--quick</code> runs only the highlighted cell at C = 1 and 8.</p>
+      <div class="tablewrap"><table id="sweep"></table></div>
+    </div>
+    <div class="card pad">
+      <h3>Three choices that make the numbers trustworthy</h3>
+      <ul style="padding-left:18px;margin:8px 0 0">
+        <li><b>Random prompts</b>, each starting with a unique hex id. vLLM's prefix cache is on by default, and repeated prompts would skip prefill and make TTFT look too good.</li>
+        <li><b><code>ignore_eos=True</code></b>, a vLLM extension, so every response is exactly <code>output_len</code> tokens. Without it, models stop early and runs aren't comparable.</li>
+        <li><b>Closed loop</b>: C workers each keep exactly one request in flight, so concurrency is controlled precisely. A 2-request warm-up runs first so the one-time startup costs of the first requests don't skew the results.</li>
+      </ul>
+      <h3 style="margin-top:16px">How TTFT is measured</h3>
+      <p class="small muted">The timer starts before the HTTP call. TTFT is taken at the first chunk with non-empty <code>delta.content</code>. The first chunk only carries the role, so it's skipped. Token counts come from the final <code>usage</code> chunk (<code>stream_options.include_usage</code>).</p>
+    </div>
+  </div>
+  <div class="card pad" style="margin-top:16px">
+    <h3>Metrics in summary.csv</h3>
+    <div class="tablewrap"><table>
+      <tr><th>Column</th><th>Meaning</th><th>What moves it</th></tr>
+      <tr><td><code>ttft_p50_ms / p99</code></td><td>request sent → first token</td><td>prompt length, queueing (waiting &gt; 0)</td></tr>
+      <tr><td><code>tpot_p50_ms / p99</code></td><td>time per output token after the first</td><td>batch size, model size, GPU bandwidth</td></tr>
+      <tr><td><code>e2e_p50_s / p99</code></td><td>full request latency</td><td>TTFT + output_len × TPOT</td></tr>
+      <tr><td><code>output_tok_per_s</code></td><td>system throughput: output tokens / wall time</td><td>concurrency (rises steeply, then flattens)</td></tr>
+      <tr><td><code>req_per_s</code></td><td>completed requests per second</td><td>throughput ÷ output length</td></tr>
+      <tr><td><code>gpu_util_mean_pct</code></td><td>nvidia-smi utilization (only shows the GPU was busy, not how efficiently)</td><td>load</td></tr>
+      <tr><td><code>kv_cache_peak_pct</code></td><td>peak fraction of the KV pool in use</td><td>concurrency × (prompt + output)</td></tr>
+      <tr><td><code>running_peak / waiting_peak</code></td><td>batch size vs queued requests</td><td>waiting &gt; 0 means you've hit KV or max-num-seqs limits</td></tr>
+    </table></div>
+    <p class="note">GPU memory in <code>nvidia-smi</code> barely changes under load because vLLM reserves it all at startup. Use KV peak % to see memory pressure.</p>
+  </div>
+</section>
+
+<!-- CONFIG -->
+<section id="config">
+  <div class="eyebrow">09 · Configuration</div>
+  <h2>Where vLLM's settings come from</h2>
+  <div class="grid g3" style="margin-top:20px">
+    <div class="card pad"><span class="pill lap">serve.sh</span><h3 style="margin:10px 0 6px">CLI flags</h3><p class="small muted">Engine settings. Every flag is listed in <code>vllm serve --help</code>. You can also put them in a YAML file with <code>--config my.yaml</code> (keys are flag names).</p></div>
+    <div class="card pad"><span class="pill">environment</span><h3 style="margin:10px 0 6px">Env vars</h3><p class="small muted"><code>VLLM_*</code> switches (see <code>vllm/envs.py</code>), plus <code>HF_TOKEN</code>, <code>HF_HOME</code>, <code>CUDA_VISIBLE_DEVICES</code>.</p></div>
+    <div class="card pad"><span class="pill gpu">HF model repo</span><h3 style="margin:10px 0 6px">Model files</h3><p class="small muted"><code>config.json</code> (architecture), <code>generation_config.json</code> (default sampling settings), <code>tokenizer_config.json</code> (chat template).</p></div>
+    <div class="card pad"><span class="pill cpu">request body</span><h3 style="margin:10px 0 6px">Per request</h3><p class="small muted"><code>temperature</code>, <code>top_p</code>, <code>max_tokens</code>, <code>stop</code>, and vLLM extras like <code>ignore_eos</code>, <code>min_tokens</code>.</p></div>
+    <div class="card pad"><span class="pill">source</span><h3 style="margin:10px 0 6px">Config classes</h3><p class="small muted"><code>vllm/config/</code> (Model, Cache, Scheduler, Parallel…) and <code>vllm/engine/arg_utils.py</code> (turns flags into config objects).</p></div>
+    <div class="card pad"><span class="pill">startup log</span><h3 style="margin:10px 0 6px">The final config</h3><p class="small muted">At startup vLLM logs the non-default args and the resolved config. It's the easiest place to check what's actually in effect.</p></div>
+  </div>
+  <div class="card pad" style="margin-top:16px">
+    <h3>Settings you'll change most often</h3>
+    <div class="tablewrap"><table>
+      <tr><th>Flag</th><th>serve.sh env</th><th>Controls</th></tr>
+      <tr><td><code>--max-model-len</code></td><td>MAX_MODEL_LEN</td><td>max prompt + output tokens per request</td></tr>
+      <tr><td><code>--gpu-memory-utilization</code></td><td>GPU_MEM_UTIL</td><td>fraction of VRAM reserved (weights + activations + KV)</td></tr>
+      <tr><td><code>--max-num-seqs</code></td><td>pass as extra arg</td><td>maximum number of requests in one batch</td></tr>
+      <tr><td><code>--max-num-batched-tokens</code></td><td>pass as extra arg</td><td>token budget per step (the simulator's budget slider)</td></tr>
+      <tr><td><code>--enable-prefix-caching</code></td><td>on by default</td><td>reuse KV for shared prompt prefixes</td></tr>
+      <tr><td><code>--tensor-parallel-size</code></td><td>TP_SIZE</td><td>split the model across N GPUs</td></tr>
+      <tr><td><code>--dtype / --quantization / --kv-cache-dtype</code></td><td>DTYPE</td><td>precision of weights and KV cache</td></tr>
+      <tr><td><code>--enforce-eager</code></td><td>extra arg</td><td>turn off CUDA graphs (slower, easier to debug)</td></tr>
+      <tr><td><code>--api-key</code></td><td>VLLM_API_KEY</td><td>require a bearer token</td></tr>
+    </table></div>
+  </div>
+</section>
+
+<!-- CPU vs GPU -->
+<section id="cpugpu">
+  <div class="eyebrow">10 · CPU vs GPU</div>
+  <h2>Decode speed is set by memory bandwidth</h2>
+  <p class="lead">Each decode step reads every weight once. For a single request, the fastest possible decode is therefore about weight bytes ÷ memory bandwidth. Bars show the approximate upper limit for a 7B bf16 model (15 GB) on one request.</p>
+  <div class="grid g2" style="margin-top:20px">
+    <div class="card pad bars" id="bw-bars"></div>
+    <div class="card pad">
+      <h3>Who does what on a GPU server</h3>
+      <div class="tablewrap"><table>
+        <tr><th>CPU</th><th>GPU</th></tr>
+        <tr><td>HTTP, JSON, SSE</td><td>matrix multiplications</td></tr>
+        <tr><td>chat template, tokenize / detokenize</td><td>attention over paged KV</td></tr>
+        <tr><td>scheduler, KV block bookkeeping</td><td>sampling kernels</td></tr>
+        <tr><td>Python orchestration, kernel launches</td><td>storing weights + KV cache</td></tr>
+      </table></div>
+      <p class="small muted" style="margin-top:12px">With small models, the CPU can become the bottleneck. vLLM works around this by running the API server and engine as separate processes and by replaying decode steps from CUDA graphs.</p>
+      <h3 style="margin-top:16px">CPU-only serving</h3>
+      <p class="small muted">vLLM has a CPU backend (best on x86 with AVX-512/AMX). You build it from source, set the KV size with <code>VLLM_CPU_KVCACHE_SPACE</code> and pin threads with <code>VLLM_CPU_OMP_THREADS_BIND</code>. It's workable for 1–3B models at low concurrency. For CPU-only production, llama.cpp or Ollama with 4-bit GGUF models are usually faster.</p>
+    </div>
+  </div>
+</section>
+
+<!-- RUNBOOK -->
+<section id="run">
+  <div class="eyebrow">11 · Runbook</div>
+  <h2>Commands, in order</h2>
+  <div class="grid g2" style="margin-top:20px">
+    <div class="card pad" id="runbook-a"></div>
+    <div class="card pad" id="runbook-b"></div>
+  </div>
+  <div class="card pad" style="margin-top:16px">
+    <h3>Things to try with your first results</h3>
+    <div class="grid g3" style="margin-top:10px">
+      <div><b>Cost of prefill</b><p class="small muted">Compare TTFT at input 128 vs 2048 with C = 1.</p></div>
+      <div><b>Cost of batching</b><p class="small muted">Compare TPOT at C = 1 vs 64. It should rise only a little while tok/s rises a lot.</p></div>
+      <div><b>Saturation point</b><p class="small muted">Find where tok/s stops rising and <code>waiting</code> becomes greater than 0.</p></div>
+      <div><b>Check the decode floor</b><p class="small muted">Is TPOT at C = 1 close to the calculator's decode floor? If it's much higher, overhead is dominating.</p></div>
+      <div><b>Prefix caching</b><p class="small muted">Restart with <code>--no-enable-prefix-caching</code>. Results should be unchanged, because the prompts are random.</p></div>
+      <div><b>Bigger model</b><p class="small muted">Rerun with <code>MODEL=Qwen/Qwen2.5-7B-Instruct</code>. KV capacity drops to about 1/6.</p></div>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer>LLM Inference Lab · Stage 0 (00-vllm) · numbers on this page are estimates; benchmark results are the real measurements</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (html) e.innerHTML = html; return e; };
+const svgEl = (tag, attrs = {}) => { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt = (n, d = 0) => n.toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
+
+/* theme */
+(() => {
+  const root = document.documentElement;
+  try { const t = localStorage.getItem('theme'); if (t) root.dataset.theme = t; } catch (e) {}
+  $('#theme').onclick = () => {
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem('theme', root.dataset.theme); } catch (e) {}
+    drawBatchChart();
+  };
+})();
+
+/* nav highlight */
+(() => {
+  const links = [...document.querySelectorAll('#links a')];
+  const secs = [...document.querySelectorAll('section[id]')];
+  const update = () => {
+    const y = scrollY + innerHeight * 0.35;
+    let cur = null; secs.forEach(s => { if (s.offsetTop <= y) cur = s.id; });
+    links.forEach(a => {
+      const on = a.getAttribute('href') === '#' + cur;
+      if (on && !a.classList.contains('on')) a.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      a.classList.toggle('on', on);
+    });
+  };
+  addEventListener('scroll', update, { passive: true }); update();
+})();
+
+function cmdBox(text) {
+  const d = el('div', { class: 'cmd' });
+  const s = el('span'); s.textContent = text; d.appendChild(s);
+  const b = el('button', {}, 'copy');
+  b.onclick = () => { navigator.clipboard?.writeText(text).then(() => { b.textContent = 'copied'; setTimeout(() => b.textContent = 'copy', 1200); }).catch(() => {}); };
+  d.appendChild(b); return d;
+}
+
+/* ---------------- code map ---------------- */
+const FILES = [
+  { d: 0, name: '00-vllm/', dir: true },
+  { d: 1, name: 'README.md', where: 'docs', purpose: 'Step-by-step guide for this stage: picking an instance, installing, serving, testing, benchmarking, and what each metric means.', points: ['Instance comparison table (g5 / g6 / g6e)', 'serve.sh environment variables', 'How the benchmark works and why', 'Experiments to run after the first sweep'] },
+  { d: 1, name: 'requirements.txt', where: 'both', purpose: 'Client-side dependencies only: the openai SDK (talks to vLLM\'s OpenAI-compatible API) and httpx (for /health and /metrics). vLLM itself is installed by setup_ec2.sh.', io: ['pip', 'openai, httpx'] },
+  { d: 1, name: 'deployment/', dir: true },
+  { d: 2, name: 'setup_ec2.sh', where: 'ec2', run: 'bash deployment/setup_ec2.sh', purpose: 'One-time setup on the GPU instance. Stops early if the NVIDIA driver is missing, so you know straight away if you picked the wrong AMI.', points: ['Checks for nvidia-smi and prints GPU name, VRAM and driver', 'apt: python3-venv, build-essential, tmux, jq', 'Creates .venv and installs vLLM (pin a version with VLLM_VERSION=…)', 'Prints vLLM / torch / CUDA versions and torch.cuda.is_available()'], io: ['NVIDIA driver, internet', '.venv/ with vllm + client deps'] },
+  { d: 2, name: 'serve.sh', where: 'ec2', run: 'MODEL=Qwen/Qwen2.5-1.5B-Instruct bash deployment/serve.sh', purpose: 'Starts `vllm serve` with settings you can override through env vars. Any extra arguments are passed straight to vLLM, e.g. `--no-enable-prefix-caching`.', points: ['Defaults: Qwen2.5-1.5B-Instruct, 127.0.0.1:8000, max-model-len 8192, gpu-memory-utilization 0.90', 'Binds to localhost so the server is reachable only through an SSH tunnel', 'Adds --api-key when VLLM_API_KEY is set', 'Writes a log to logs/vllm_<timestamp>.log; read it for KV cache size and max concurrency'], io: ['MODEL, HOST, PORT, MAX_MODEL_LEN, GPU_MEM_UTIL, TP_SIZE, DTYPE', 'running server on :8000, logs/'] },
+  { d: 2, name: 'curl_examples.sh', where: 'both', run: 'bash deployment/curl_examples.sh', purpose: 'Sends requests by hand so you can see the raw HTTP. In the streaming example, tokens arrive as server-sent events ("data: {...}").', points: ['GET /health, /v1/models', 'POST /v1/chat/completions, both blocking and streaming', 'POST /v1/completions (no chat template applied)', 'Prints a few lines from /metrics: running, waiting, KV usage'], io: ['BASE, MODEL, VLLM_API_KEY', 'JSON printed via jq'] },
+  { d: 1, name: 'tests/', dir: true },
+  { d: 2, name: 'smoke_test.py', where: 'both', run: 'python tests/smoke_test.py --base-url http://localhost:8000/v1', purpose: 'Checks every API path the benchmark depends on. Every check runs even if one fails, then it prints PASS or FAIL with timings and exits 1 if anything failed.', points: ['health, models (+ max_model_len), chat, streaming chat (prints TTFT)', 'text completion', 'ignore_eos returns exactly 50 tokens (bench.py depends on this)', '8 parallel requests, /metrics exposes vllm:* series'], io: ['--base-url, --api-key, --model', 'exit code 0 or 1'] },
+  { d: 1, name: 'benchmark/', dir: true },
+  { d: 2, name: 'bench.py', where: 'ec2', run: 'python benchmark/bench.py --tag qwen1.5b-a10g', purpose: 'The baseline benchmark. Sweeps prompt length × output length × concurrency against the live server and records latency, throughput, GPU and KV-cache data for each configuration.', points: ['make_prompt(): random words plus a unique hex prefix, so the prefix cache can\'t help', 'run_one(): one streaming request; measures TTFT, e2e and token counts from the usage chunk', 'run_config(): C async workers pulling from a queue (closed-loop load)', 'Sampler: background task polling nvidia-smi and /metrics every 0.5 s', 'summarize(): p50/p99, tok/s, peak KV %, running/waiting per config', 'Skips configs that exceed max_model_len'], io: ['--input-lens, --output-lens, --concurrency, --num-requests, --quick, --tag', 'results/<ts>_<tag>/ summary.csv, requests.jsonl, gpu_samples.jsonl, env.json'] },
+  { d: 2, name: 'summarize.py', where: 'both', run: 'python benchmark/summarize.py results/*_qwen1.5b-a10g', purpose: 'Prints one or more runs as Markdown tables with model, vLLM version and GPU in the header. Pass several run folders to compare them.', io: ['results/<run>/summary.csv + env.json', 'Markdown on stdout'] },
+  { d: 1, name: 'architecture-notes/', dir: true },
+  { d: 2, name: 'NOTES.md', where: 'docs', purpose: 'Your notes. Questions to answer, a request-path table to fill in with source links, and space for benchmark observations and startup log highlights.' },
+  { d: 2, name: 'how-vllm-serving-works.md', where: 'docs', purpose: 'Reference: config sources, startup, the path of one request through the engine, why GPUs are fast at this, CPU-only serving, and a deployment checklist.' },
+  { d: 1, name: 'results/', dir: true, note: 'one folder per run' },
+  { d: 1, name: 'stage0-explainer.html', where: 'docs', purpose: 'This page.' },
+];
+const WHERE = { ec2: ['cpu', 'EC2'], both: ['lap', 'either'], docs: ['', 'docs'] };
+function renderTree(sel) {
+  const t = $('#tree'); t.innerHTML = '';
+  FILES.forEach((f, i) => {
+    const r = el('div', { class: 'row' + (f.dir ? '' : ' file') + (i === sel ? ' sel' : '') });
+    r.style.paddingLeft = (8 + f.d * 16) + 'px';
+    r.innerHTML = `<span class="ic">${f.dir ? '▾' : '·'}</span><span>${f.name}</span>` + (f.note ? `<small style="margin-left:6px;color:var(--faint)">${f.note}</small>` : '') + (f.where && f.where !== 'docs' ? `<span class="tag ${WHERE[f.where][0]}">${WHERE[f.where][1]}</span>` : '');
+    if (!f.dir) r.onclick = () => { renderTree(i); renderDetail(f); };
+    t.appendChild(r);
+  });
+}
+function renderDetail(f) {
+  const d = $('#detail'); d.innerHTML = '';
+  const path = FILES.slice(0, FILES.indexOf(f)).reverse().find(x => x.dir && x.d < f.d);
+  d.appendChild(el('h3', {}, (path && path.name !== '00-vllm/' ? path.name : '') + f.name));
+  const meta = el('div', { class: 'meta' });
+  const w = WHERE[f.where];
+  meta.innerHTML = `<span class="pill ${w[0]}">runs on: ${w[1]}</span>` + (f.name.endsWith('.py') ? '<span class="pill">Python · asyncio</span>' : f.name.endsWith('.sh') ? '<span class="pill">bash</span>' : '');
+  d.appendChild(meta);
+  d.appendChild(el('p', {}, f.purpose.replace(/`([^`]+)`/g, '<code>$1</code>')));
+  if (f.run) d.appendChild(cmdBox(f.run));
+  if (f.points) { const ul = el('ul'); f.points.forEach(p => ul.appendChild(el('li', {}, p))); d.appendChild(el('b', { class: 'small' }, 'Key parts')); d.appendChild(ul); }
+  if (f.io) { const io = el('div', { class: 'io' }); io.innerHTML = `<div><b>Inputs</b>${f.io[0]}</div><div><b>Outputs</b>${f.io[1]}</div>`; d.appendChild(io); }
+}
+const firstSel = FILES.findIndex(f => f.name === 'bench.py');
+renderTree(firstSel); renderDetail(FILES[firstSel]);
+
+/* ---------------- memory calculator ---------------- */
+const GPUS = [
+  { n: 'A10G · 24 GB (g5)', mem: 24, bw: 600 },
+  { n: 'L4 · 24 GB (g6)', mem: 24, bw: 300 },
+  { n: 'L40S · 48 GB (g6e)', mem: 48, bw: 864 },
+  { n: 'A100 · 40 GB', mem: 40, bw: 1555 },
+  { n: 'A100 · 80 GB', mem: 80, bw: 2039 },
+  { n: 'H100 SXM · 80 GB', mem: 80, bw: 3350 },
+];
+const MODELS = [
+  { n: 'Qwen2.5-1.5B-Instruct', p: 1.54, L: 28, kvh: 2, hd: 128 },
+  { n: 'Qwen2.5-7B-Instruct', p: 7.6, L: 28, kvh: 4, hd: 128 },
+  { n: 'Llama-3.1-8B-Instruct', p: 8.0, L: 32, kvh: 8, hd: 128 },
+  { n: 'Qwen2.5-14B-Instruct', p: 14.7, L: 48, kvh: 8, hd: 128 },
+  { n: 'Qwen2.5-32B-Instruct', p: 32.8, L: 64, kvh: 8, hd: 128 },
+];
+GPUS.forEach((g, i) => $('#m-gpu').appendChild(el('option', { value: i }, g.n)));
+MODELS.forEach((m, i) => $('#m-model').appendChild(el('option', { value: i }, m.n)));
+function calc() {
+  const g = GPUS[+$('#m-gpu').value], m = MODELS[+$('#m-model').value];
+  const wq = +$('#m-wq').value, kvq = +$('#m-kvq').value, util = +$('#m-util').value, len = 2 ** +$('#m-len').value;
+  $('#m-util-v').textContent = util.toFixed(2); $('#m-len-v').textContent = fmt(len);
+  const weights = m.p * wq, act = 1.5, reserved = g.mem * util;
+  const kv = reserved - weights - act;
+  const perTok = 2 * m.L * m.kvh * m.hd * kvq; // bytes
+  const kvTokens = kv > 0 ? kv * 1e9 / perTok : 0;
+  const conc = kvTokens / len;
+  const floor = weights / g.bw * 1000;
+  const pct = x => Math.max(0, x / g.mem * 100) + '%';
+  const bar = $('#m-bar'); bar.innerHTML = '';
+  const add = (w, c, t) => { const d = el('div'); d.style.width = w; d.style.background = c; d.textContent = t; bar.appendChild(d); };
+  if (kv > 0) {
+    add(pct(weights), 'var(--weights)', `${fmt(weights, 1)} GB`);
+    add(pct(act), 'var(--act)', '');
+    add(pct(kv), 'var(--kv)', `KV ${fmt(kv, 1)} GB`);
+  } else {
+    add(pct(Math.min(weights, g.mem)), 'var(--preempt)', `weights ${fmt(weights, 1)} GB: doesn't fit`);
+  }
+  $('#m-kpis').innerHTML = [
+    ['KV per token', `${fmt(perTok / 1024, 0)} KB`],
+    ['KV capacity', kv > 0 ? `${fmt(kvTokens / 1000, 0)}k tok` : '<span class="warn">none</span>'],
+    [`full ${fmt(len)}-token requests at once`, kv > 0 ? (conc >= 1 ? fmt(conc, conc < 10 ? 1 : 0) : `<span class="warn">${fmt(conc, 2)}</span>`) : '<span class="warn">0</span>'],
+    ['decode floor (1 request)', `${fmt(floor, 1)} ms <span class="small muted">≈${fmt(1000 / floor)} tok/s</span>`],
+  ].map(([k, v]) => `<div class="kpi"><div class="big" style="font-size:1.2rem">${v}</div><span>${k}</span></div>`).join('');
+  $('#m-formula').textContent = `KV/token = 2 × ${m.L} layers × ${m.kvh} kv_heads × ${m.hd} head_dim × ${kvq} B = ${fmt(perTok)} B   |   KV pool = ${fmt(g.mem)}×${util.toFixed(2)} − ${fmt(weights, 1)} − ${act} = ${fmt(Math.max(kv, 0), 1)} GB`;
+}
+['#m-gpu', '#m-model', '#m-wq', '#m-kvq', '#m-util', '#m-len'].forEach(s => $(s).addEventListener('input', calc));
+calc();
+
+/* ---------------- request path ---------------- */
+const RQ_NODES = {
+  client: { x: 10, y: 135, w: 110, h: 60, t: 'Client', s: 'openai SDK / curl' },
+  http: { x: 160, y: 40, w: 220, h: 56, t: 'FastAPI endpoint', s: 'validate OpenAI request' },
+  tok: { x: 160, y: 136, w: 220, h: 56, t: 'Chat template + tokenize', s: 'messages → prompt → token ids' },
+  out: { x: 160, y: 236, w: 220, h: 56, t: 'Output processor', s: 'detokenize · stop strings · SSE' },
+  sched: { x: 450, y: 40, w: 210, h: 56, t: 'Scheduler', s: 'token budget · admit / preempt' },
+  kv: { x: 450, y: 136, w: 210, h: 56, t: 'KV cache manager', s: 'prefix lookup · allocate blocks' },
+  upd: { x: 450, y: 236, w: 210, h: 56, t: 'Update state', s: 'append token · free finished' },
+  model: { x: 740, y: 40, w: 220, h: 56, t: 'Model runner', s: 'flatten batch · forward pass' },
+  attn: { x: 740, y: 136, w: 220, h: 56, t: 'Attention', s: 'write K/V · read paged blocks' },
+  samp: { x: 740, y: 236, w: 220, h: 56, t: 'LM head + sampler', s: 'logits → next token' },
+};
+const RQ_STEPS = [
+  { n: 'client', e: null, h: '1 · Client sends POST /v1/chat/completions', p: 'The request has a messages list and sampling settings such as max_tokens and temperature. With stream=true the HTTP connection stays open and tokens come back as server-sent events.', f: 'tests/smoke_test.py · benchmark/bench.py → run_one()' },
+  { n: 'http', e: ['client', 'http'], h: '2 · API server validates the request', p: 'FastAPI parses the OpenAI-format JSON and checks the model name and parameters. Request params are merged with the defaults from the model\'s generation_config.json. All of this runs on the CPU in the API server process.', f: 'vllm/entrypoints/openai/api_server.py · serving_chat.py' },
+  { n: 'tok', e: ['http', 'tok'], h: '3 · Chat template + tokenization', p: 'The Jinja chat template from tokenizer_config.json turns the messages into one prompt string with special tokens such as <|im_start|>. The tokenizer then converts it to token ids. The request is handed to AsyncLLM, which sends it to the engine process over ZMQ.', f: 'vllm/v1/engine/async_llm.py' },
+  { n: 'sched', e: ['tok', 'sched'], h: '4 · Scheduler picks work for this step', p: 'The EngineCore runs a loop. Each iteration the scheduler has a token budget (max_num_batched_tokens). Running requests get 1 decode token each, then waiting requests are admitted with prompt chunks. A new request may wait here if the batch or the KV pool is full; that waiting time is part of TTFT.', f: 'vllm/v1/engine/core.py · vllm/v1/core/sched/scheduler.py' },
+  { n: 'kv', e: ['sched', 'kv'], h: '5 · KV cache manager allocates blocks', p: 'The prompt is hashed in 16-token blocks. Blocks already in the prefix cache are reused, and their prefill is skipped. New blocks come from the free list, so a request\'s memory doesn\'t need to be contiguous. If the pool is exhausted, the scheduler preempts a request, frees its blocks, and recomputes it later.', f: 'vllm/v1/core/kv_cache_manager.py · block_pool.py' },
+  { n: 'model', e: ['kv', 'model'], h: '6 · Model runner builds the batch and runs forward', p: 'All scheduled tokens from every request are concatenated into one flat tensor (no padding), together with positions, block tables and slot mappings. Decode-only steps are replayed from captured CUDA graphs. Everything from here runs on the GPU.', f: 'vllm/v1/worker/gpu_model_runner.py · vllm/model_executor/models/qwen2.py' },
+  { n: 'attn', e: ['model', 'attn'], h: '7 · Each layer: QKV → RoPE → paged attention → MLP', p: 'New K/V vectors are written into this request\'s cache blocks. The attention kernel (FlashAttention or FlashInfer backend) reads earlier K/V through the block table. Prefill tokens attend to their own prompt; each decode token attends to the whole context.', f: 'vllm/v1/attention/backends/flash_attn.py' },
+  { n: 'samp', e: ['attn', 'samp'], h: '8 · LM head + sampling', p: 'Only the last position of each request goes through the LM head, giving vocabulary-sized logits. The sampler applies temperature, top-p/top-k and penalties, then picks one token per request. The step where prefill finishes is the step that produces the first token.', f: 'vllm/v1/sample/sampler.py' },
+  { n: 'upd', e: ['samp', 'upd'], h: '9 · Engine updates request state', p: 'The new token is appended. The engine checks max_tokens and EOS (unless ignore_eos is set). Finished requests release their blocks; the blocks stay in the prefix cache until another request needs the space. The loop then starts the next step. One step is one TPOT.', f: 'vllm/v1/core/sched/scheduler.py → update_from_output()' },
+  { n: 'out', e: ['upd', 'out'], h: '10 · Detokenize and check stop strings', p: 'Outputs go back over ZMQ to the API server process, which detokenizes incrementally. A token can be part of a word or emoji, so text is only sent once it can be decoded cleanly. Stop strings are checked here.', f: 'vllm/v1/engine/output_processor.py · detokenizer.py' },
+  { n: 'client', e: ['out', 'client'], h: '11 · Token streamed to the client', p: 'An SSE chunk "data: {choices:[{delta:{content:\'Hello\'}}]}" is sent. The client\'s TTFT clock stops on the first chunk with content. Steps 4–11 repeat once per generated token until the request finishes; the final chunk carries usage and is followed by "data: [DONE]".', f: 'bench.py measures TTFT here' },
+];
+const RQ_EDGES = [['client', 'http'], ['http', 'tok'], ['tok', 'sched'], ['sched', 'kv'], ['kv', 'model'], ['model', 'attn'], ['attn', 'samp'], ['samp', 'upd'], ['upd', 'out'], ['out', 'client']];
+function clip(a, b) { // point on rect a's border toward b's center
+  const ax = a.x + a.w / 2, ay = a.y + a.h / 2, bx = b.x + b.w / 2, by = b.y + b.h / 2;
+  const dx = bx - ax, dy = by - ay; const sx = (a.w / 2) / Math.abs(dx || 1e-9), sy = (a.h / 2) / Math.abs(dy || 1e-9); const s = Math.min(sx, sy);
+  return [ax + dx * s, ay + dy * s];
+}
+function buildReqSvg() {
+  const s = $('#req-svg');
+  const defs = svgEl('defs'); const mk = svgEl('marker', { id: 'ahr', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto' });
+  const mp = svgEl('path', { d: 'M0,0 L10,5 L0,10 z', fill: 'var(--faint)' }); mk.appendChild(mp); defs.appendChild(mk);
+  const mk2 = mk.cloneNode(true); mk2.id = 'ahr-on'; mk2.firstChild.setAttribute('fill', 'var(--accent)'); defs.appendChild(mk2); s.appendChild(defs);
+  [[140, 'API server process', 'grp-cpu', 'var(--cpu)', 400], [430, 'EngineCore process', 'grp-cpu', 'var(--cpu)', 690], [720, 'GPU worker', 'grp-gpu', 'var(--gpu)', 990]].forEach(([x, label, cls, col, x2]) => {
+    s.appendChild(svgEl('rect', { x, y: 6, width: x2 - x, height: 316, rx: 14, class: cls }));
+    const t = svgEl('text', { x: x + 14, y: 26, class: 'glabel', fill: col }); t.textContent = label; s.appendChild(t);
+  });
+  const zt = svgEl('text', { x: 415, y: 316, 'text-anchor': 'middle', class: 't-faint', 'font-size': 10 }); zt.textContent = 'ZMQ'; s.appendChild(zt);
+  RQ_EDGES.forEach(([a, b]) => {
+    const A = RQ_NODES[a], B = RQ_NODES[b]; const p1 = clip(A, B), p2 = clip(B, A);
+    s.appendChild(svgEl('path', { class: 'edge', id: `e-${a}-${b}`, d: `M${p1[0]} ${p1[1]} L${p2[0]} ${p2[1]}`, 'marker-end': 'url(#ahr)' }));
+  });
+  for (const k in RQ_NODES) {
+    const n = RQ_NODES[k]; const g = svgEl('g', { class: 'node', id: `n-${k}` });
+    g.appendChild(svgEl('rect', { x: n.x, y: n.y, width: n.w, height: n.h, rx: 10 }));
+    const t = svgEl('text', { x: n.x + n.w / 2, y: n.y + n.h / 2 - 3, 'text-anchor': 'middle' }); t.textContent = n.t; g.appendChild(t);
+    const t2 = svgEl('text', { x: n.x + n.w / 2, y: n.y + n.h / 2 + 14, 'text-anchor': 'middle', class: 'sub' }); t2.textContent = n.s; g.appendChild(t2);
+    s.appendChild(g);
+  }
+  RQ_STEPS.forEach((_, i) => { const d = el('i'); d.onclick = () => rqGo(i); $('#rq-dots').appendChild(d); });
+}
+let rq = 0, rqTimer = null;
+function rqGo(i) {
+  rq = (i + RQ_STEPS.length) % RQ_STEPS.length; const st = RQ_STEPS[rq];
+  document.querySelectorAll('#req-svg .node').forEach(n => n.classList.remove('on'));
+  document.querySelectorAll('#req-svg .edge').forEach(e => { e.classList.remove('on', 'done'); e.setAttribute('marker-end', 'url(#ahr)'); });
+  $('#n-' + st.n).classList.add('on');
+  RQ_STEPS.slice(0, rq + 1).forEach((s2, j) => { if (s2.e) { const e = $(`#e-${s2.e[0]}-${s2.e[1]}`); e.classList.add(j === rq ? 'on' : 'done'); if (j === rq) e.setAttribute('marker-end', 'url(#ahr-on)'); } });
+  document.querySelectorAll('#rq-dots i').forEach((d, j) => d.classList.toggle('on', j === rq));
+  $('#rq-explain').innerHTML = `<h3>${st.h}</h3><p class="small" style="margin:6px 0">${st.p.replace(/</g, '&lt;').replace(/&lt;\|/g, '&lt;|')}</p><span class="path">${st.f}</span>`;
+}
+buildReqSvg(); rqGo(0);
+$('#rq-next').onclick = () => rqGo(rq + 1); $('#rq-prev').onclick = () => rqGo(rq - 1);
+$('#rq-play').onclick = () => {
+  if (rqTimer) { clearInterval(rqTimer); rqTimer = null; $('#rq-play').textContent = '▶ Auto'; return; }
+  $('#rq-play').textContent = '❚❚ Pause'; rqTimer = setInterval(() => rqGo(rq + 1), 2600);
+};
+
+/* ---------------- batching simulator ---------------- */
+const REQS = [
+  { id: 'A', arrival: 0, prompt: 96, outLen: 6, col: 'var(--r1)' },
+  { id: 'B', arrival: 1, prompt: 220, outLen: 4, col: 'var(--r2)' },
+  { id: 'C', arrival: 2, prompt: 40, outLen: 9, col: 'var(--r3)' },
+  { id: 'D', arrival: 3, prompt: 300, outLen: 3, col: 'var(--r4)' },
+  { id: 'E', arrival: 5, prompt: 64, outLen: 7, col: 'var(--r5)' },
+  { id: 'F', arrival: 6, prompt: 140, outLen: 5, col: 'var(--r6)' },
+];
+const BS = 16;
+function simulate(p) {
+  const R = REQS.map(r => ({ ...r, computed: 0, out: 0, blocks: [], ttft: null, done: null, preemptedAt: -1 }));
+  let free = [...Array(p.blocks).keys()];
+  const waiting = [], running = [], hist = [];
+  const total = r => r.prompt + r.out;
+  const need = (r, n) => Math.max(0, Math.ceil((r.computed + n) / BS) - r.blocks.length);
+  const release = r => { free.push(...r.blocks); free.sort((a, b) => a - b); r.blocks = []; };
+  for (let step = 0; step < 150; step++) {
+    const cells = {}, log = [];
+    R.forEach(r => { if (r.arrival === step) { waiting.push(r); log.push(`${r.id} arrives (${r.prompt}-token prompt, wants ${r.outLen} tokens)`); } });
+    let budget = p.budget; const scheduled = [];
+    const schedule = (r, n) => {
+      const kind = (r.out > 0 && total(r) - r.computed === 1) ? 'decode' : 'prefill';
+      r.blocks.push(...free.splice(0, need(r, n)));
+      r.computed += n; budget -= n; cells[r.id] = { kind, n }; scheduled.push(r);
+    };
+    // 1) running requests first
+    let i = 0;
+    while (i < running.length && budget > 0) {
+      const r = running[i];
+      const n = Math.min(total(r) - r.computed, budget);
+      let selfPre = false;
+      while (need(r, n) > free.length) {
+        const v = running.pop(); release(v); v.computed = 0; v.preemptedAt = step; waiting.unshift(v);
+        cells[v.id] = { kind: 'preempted' }; log.push(`KV pool full → preempt ${v.id} (blocks freed, will recompute)`);
+        if (v === r) { selfPre = true; break; }
+      }
+      if (selfPre) break;
+      schedule(r, n); i++;
+    }
+    // 2) admit waiting requests
+    while (waiting.length && budget > 0 && running.length < p.maxSeqs) {
+      const r = waiting[0];
+      if (r.preemptedAt === step) break;
+      const n = Math.min(total(r) - r.computed, budget);
+      const k = need(r, n);
+      if (k > free.length) { log.push(`${r.id} must wait: needs ${k} blocks, only ${free.length} free`); break; }
+      waiting.shift(); running.push(r); schedule(r, n);
+    }
+    if (waiting.length && running.length >= p.maxSeqs && !log.some(l => l.includes('must wait'))) log.push(`${waiting.map(r => r.id).join(', ')} waiting: max-num-seqs (${p.maxSeqs}) reached`);
+    else if (waiting.length && budget === 0 && !log.some(l => l.includes('must wait'))) log.push(`${waiting.filter(r => r.preemptedAt !== step).map(r => r.id).join(', ') || 'queue'} waiting: token budget used up`);
+    // 3) sample
+    const decodes = [], finished = [];
+    scheduled.forEach(r => {
+      const c = cells[r.id];
+      if (c.kind === 'prefill') log.push(`${r.id} prefill ${c.n} tokens (${Math.min(r.computed, total(r))}/${total(r)})`);
+      if (r.computed === total(r)) {
+        r.out++;
+        if (c.kind === 'decode') decodes.push(r.id);
+        if (r.ttft === null) { r.ttft = step; c.first = true; log.push(`${r.id} → first token ★ (TTFT = ${step - r.arrival + 1} steps)`); }
+        if (r.out >= r.outLen) { r.done = step; c.last = true; finished.push(r); }
+      }
+    });
+    if (decodes.length) log.splice(log.length - finished.length, 0, `decode: ${decodes.join(', ')} (1 token each)`);
+    finished.forEach(r => { running.splice(running.indexOf(r), 1); const nb = r.blocks.length; release(r); log.push(`${r.id} finished ✓ → ${nb} blocks returned`); });
+    R.forEach(r => {
+      if (cells[r.id]) return;
+      if (r.arrival > step) cells[r.id] = { kind: 'future' };
+      else if (r.done !== null) cells[r.id] = { kind: 'done' };
+      else if (running.includes(r)) cells[r.id] = { kind: 'idle' };
+      else cells[r.id] = { kind: 'waiting' };
+    });
+    const owners = Array(p.blocks).fill(null);
+    R.forEach(r => r.blocks.forEach(b => owners[b] = r));
+    hist.push({ cells, owners, log, used: p.budget - budget, nRun: running.length, nWait: waiting.length, free: free.length });
+    if (R.every(r => r.done !== null)) break;
+  }
+  return { hist, R };
+}
+let SIM, cur = 0, simTimer = null;
+function params() { return { budget: +$('#s-budget').value, maxSeqs: +$('#s-seqs').value, blocks: +$('#s-blocks').value }; }
+function runSim() {
+  const p = params();
+  $('#s-budget-v').textContent = p.budget; $('#s-seqs-v').textContent = p.maxSeqs; $('#s-blocks-v').textContent = p.blocks;
+  SIM = simulate(p);
+  $('#s-step').max = SIM.hist.length - 1;
+  cur = Math.min(cur, SIM.hist.length - 1);
+  const ttfts = SIM.R.map(r => r.ttft - r.arrival + 1), lat = SIM.R.map(r => r.done - r.arrival + 1);
+  $('#s-summary').textContent = `${SIM.hist.length} steps total · mean TTFT ${fmt(ttfts.reduce((a, b) => a + b) / ttfts.length, 1)} steps · mean e2e ${fmt(lat.reduce((a, b) => a + b) / lat.length, 1)} steps`;
+  buildGantt(); show(cur);
+}
+function buildGantt() {
+  const g = $('#gantt'); g.innerHTML = '';
+  const N = SIM.hist.length;
+  g.style.gridTemplateColumns = `max-content repeat(${N}, 30px)`;
+  g.appendChild(el('div', { class: 'lab', style: 'background:var(--surface)' }, '<small>req · prompt/out</small>'));
+  for (let s = 0; s < N; s++) { const h = el('div', { class: 'h', 'data-s': s }, s); h.onclick = () => show(s); g.appendChild(h); }
+  SIM.R.forEach(r => {
+    g.appendChild(el('div', { class: 'lab' }, `<i style="background:${r.col}"></i>${r.id} <small>${r.prompt}/${r.outLen}</small>`));
+    for (let s = 0; s < N; s++) {
+      const c = SIM.hist[s].cells[r.id];
+      const d = el('div', { class: 'c ' + c.kind, 'data-s': s });
+      if (c.kind === 'prefill') d.textContent = c.first ? '★' : c.n;
+      if (c.kind === 'decode') d.textContent = c.last ? '✓' : c.first ? '★' : '';
+      if (c.kind === 'prefill' && c.last) d.textContent = '✓';
+      if (c.kind === 'preempted') d.textContent = '✕';
+      d.title = `step ${s}: ${c.kind}${c.n ? ' ' + c.n + ' tok' : ''}`;
+      d.onclick = () => show(s);
+      g.appendChild(d);
+    }
+  });
+}
+function show(s) {
+  cur = Math.max(0, Math.min(s, SIM.hist.length - 1));
+  const h = SIM.hist[cur], p = params();
+  $('#s-step').value = cur; $('#s-step-v').textContent = cur; $('#s-stepno').textContent = cur;
+  document.querySelectorAll('#gantt [data-s]').forEach(e => {
+    const ss = +e.dataset.s;
+    e.classList.toggle('cur', e.classList.contains('h') && ss === cur);
+    if (e.classList.contains('c')) { e.classList.toggle('dim', ss > cur); e.classList.toggle('curcol', ss === cur); }
+  });
+  const pre = Object.values(h.cells).filter(c => c.kind === 'prefill').reduce((a, c) => a + c.n, 0);
+  const dec = Object.values(h.cells).filter(c => c.kind === 'decode').length;
+  $('#s-stats').innerHTML = [[h.nRun, 'running'], [h.nWait, 'waiting'], [`${h.used}/${p.budget}`, 'tokens this step'], [`${h.free}/${p.blocks}`, 'free blocks']].map(([v, k]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
+  $('#s-budgetbar').innerHTML = `<div style="width:${dec / p.budget * 100}%;background:var(--decode)"></div><div style="width:${pre / p.budget * 100}%;background:var(--prefill)"></div>`;
+  $('#s-log').innerHTML = h.log.map(l => `<li>${l}</li>`).join('') || '<li>idle</li>';
+  const pool = $('#s-pool'); pool.innerHTML = '';
+  h.owners.forEach(o => { const d = el('div'); if (o) { d.style.background = o.col; d.textContent = o.id; } pool.appendChild(d); });
+  const col = document.querySelector(`#gantt .h[data-s="${cur}"]`);
+  const wrap = document.querySelector('.gantt-wrap');
+  if (col && wrap) { const x = col.offsetLeft - wrap.clientWidth / 2; if (Math.abs(wrap.scrollLeft - x) > wrap.clientWidth / 3) wrap.scrollTo({ left: x, behavior: 'smooth' }); }
+}
+['#s-budget', '#s-seqs', '#s-blocks'].forEach(s => $(s).addEventListener('input', runSim));
+$('#s-step').addEventListener('input', e => show(+e.target.value));
+$('#s-next').onclick = () => show(cur + 1); $('#s-prev').onclick = () => show(cur - 1);
+$('#s-reset').onclick = () => { stopSim(); show(0); };
+function stopSim() { clearInterval(simTimer); simTimer = null; $('#s-play').textContent = '▶ Play'; }
+$('#s-play').onclick = () => {
+  if (simTimer) return stopSim();
+  if (cur >= SIM.hist.length - 1) show(0);
+  $('#s-play').textContent = '❚❚ Pause';
+  simTimer = setInterval(() => { if (cur >= SIM.hist.length - 1) return stopSim(); show(cur + 1); }, 750);
+};
+runSim();
+
+/* ---------------- batching toy model ---------------- */
+const BC = [1, 2, 4, 8, 16, 32, 64, 128, 256];
+function stepMs(c) {
+  const W = 3.08e9, kvTok = 28672, ctx = 1024, bw = 600e9, flops = 75e12, P = 1.54e9;
+  const mem = (W + c * ctx * kvTok) / bw * 1000;
+  const comp = 2 * P * c / flops * 1000;
+  return Math.max(mem, comp) + 1.5;
+}
+function drawBatchChart() {
+  const c = BC[+$('#b-c').value]; $('#b-c-v').textContent = c;
+  const t = stepMs(c);
+  $('#b-kpis').innerHTML = [[`${fmt(t, 1)} ms`, 'TPOT (step time)'], [fmt(1000 / t), 'tok/s per request'], [fmt(c * 1000 / t), 'tok/s total']].map(([v, k]) => `<div class="kpi"><div class="big" style="font-size:1.15rem">${v}</div><span>${k}</span></div>`).join('');
+  const s = $('#b-chart'); s.innerHTML = '';
+  const X0 = 46, X1 = 434, Y0 = 186, Y1 = 18;
+  const thr = BC.map(b => b * 1000 / stepMs(b)), tp = BC.map(stepMs);
+  const maxT = Math.max(...thr) * 1.08, maxP = Math.max(...tp) * 1.15;
+  const x = i => X0 + (X1 - X0) * i / (BC.length - 1);
+  const yT = v => Y0 - (Y0 - Y1) * v / maxT, yP = v => Y0 - (Y0 - Y1) * v / maxP;
+  for (let k = 0; k <= 4; k++) { const yy = Y0 - (Y0 - Y1) * k / 4; s.appendChild(svgEl('line', { x1: X0, x2: X1, y1: yy, y2: yy, stroke: 'var(--border)', 'stroke-width': 1 })); const tl = svgEl('text', { x: X0 - 6, y: yy + 3, 'text-anchor': 'end', 'font-size': 9.5, fill: 'var(--decode)' }); tl.textContent = fmt(maxT * k / 4 / 1000, 1) + 'k'; s.appendChild(tl); const tr = svgEl('text', { x: X1 + 6, y: yy + 3, 'font-size': 9.5, fill: 'var(--prefill)' }); tr.textContent = fmt(maxP * k / 4, 0); s.appendChild(tr); }
+  BC.forEach((b, i) => { const tx = svgEl('text', { x: x(i), y: Y0 + 15, 'text-anchor': 'middle', 'font-size': 9.5, class: 't-muted' }); tx.textContent = b; s.appendChild(tx); });
+  const ax = svgEl('text', { x: (X0 + X1) / 2, y: Y0 + 31, 'text-anchor': 'middle', 'font-size': 10, class: 't-faint' }); ax.textContent = 'concurrent requests'; s.appendChild(ax);
+  const cx = +$('#b-c').value;
+  s.appendChild(svgEl('line', { x1: x(cx), x2: x(cx), y1: Y1, y2: Y0, stroke: 'var(--accent)', 'stroke-dasharray': '3 3', 'stroke-width': 1.5 }));
+  s.appendChild(svgEl('polyline', { points: thr.map((v, i) => `${x(i)},${yT(v)}`).join(' '), fill: 'none', stroke: 'var(--decode)', 'stroke-width': 2.5 }));
+  s.appendChild(svgEl('polyline', { points: tp.map((v, i) => `${x(i)},${yP(v)}`).join(' '), fill: 'none', stroke: 'var(--prefill)', 'stroke-width': 2.5, 'stroke-dasharray': '6 4' }));
+  s.appendChild(svgEl('circle', { cx: x(cx), cy: yT(thr[cx]), r: 5, fill: 'var(--decode)' }));
+  s.appendChild(svgEl('circle', { cx: x(cx), cy: yP(tp[cx]), r: 5, fill: 'var(--prefill)' }));
+  const l1 = svgEl('text', { x: X0 + 6, y: Y1 + 4, 'font-size': 10.5, fill: 'var(--decode)', 'font-weight': 600 }); l1.textContent = '— total tok/s (left)'; s.appendChild(l1);
+  const l2 = svgEl('text', { x: X0 + 6, y: Y1 + 18, 'font-size': 10.5, fill: 'var(--prefill)', 'font-weight': 600 }); l2.textContent = '- - TPOT ms (right)'; s.appendChild(l2);
+}
+$('#b-c').addEventListener('input', drawBatchChart); drawBatchChart();
+
+/* ---------------- sweep table ---------------- */
+(() => {
+  const ins = [128, 512, 2048], outs = [128, 512];
+  let h = '<tr><th>input ↓ / output →</th>' + outs.map(o => `<th>${o}</th>`).join('') + '</tr>';
+  ins.forEach(i => { h += `<tr><td><b>${i}</b></td>` + outs.map(o => `<td>${[1, 4, 16, 64].map(c => `<span class="pill" style="margin:2px">C=${c}</span>`).join('')}</td>`).join('') + '</tr>'; });
+  h += `<tr class="hl"><td><b>--quick</b></td><td colspan="2">input 256 · output 128 · <span class="pill" style="margin:2px">C=1</span><span class="pill" style="margin:2px">C=8</span></td></tr>`;
+  $('#sweep').innerHTML = h;
+})();
+
+/* ---------------- bandwidth bars ---------------- */
+(() => {
+  const rows = [['CPU · DDR5 server', 200, 'var(--cpu)'], ['L4 (g6)', 300, 'var(--gpu)'], ['A10G (g5)', 600, 'var(--gpu)'], ['L40S (g6e)', 864, 'var(--gpu)'], ['A100 80 GB', 2039, 'var(--gpu)'], ['H100 SXM', 3350, 'var(--gpu)']];
+  const max = 3350; const box = $('#bw-bars');
+  box.innerHTML = '<h3 style="margin-bottom:10px">Memory bandwidth → upper limit for 7B decode</h3>' + rows.map(([n, bw, c]) => `<div class="b"><span>${n}</span><div class="track"><div class="fill" style="width:${bw / max * 100}%;background:${c}"></div></div><span class="mono">${fmt(bw / 15.2)} tok/s</span></div>`).join('') +
+    '<p class="note">tok/s = bandwidth (GB/s) ÷ 15.2 GB of weights. Real numbers are lower. On a CPU, prefill is also limited by compute, so long-prompt TTFT is measured in seconds rather than milliseconds.</p>';
+})();
+
+/* ---------------- runbook ---------------- */
+(() => {
+  const A = [
+    ['Laptop: copy the stage to EC2', 'rsync -avz --exclude results/ --exclude .venv/ 00-vllm/ ubuntu@<EC2_IP>:~/00-vllm/'],
+    ['EC2: install (once)', 'cd ~/00-vllm && bash deployment/setup_ec2.sh'],
+    ['EC2: start the server in tmux', 'source .venv/bin/activate && tmux new -s vllm'],
+    ['', 'bash deployment/serve.sh'],
+    ['Laptop: tunnel (optional)', 'ssh -N -L 8000:localhost:8000 ubuntu@<EC2_IP>'],
+  ];
+  const B = [
+    ['EC2: verify', 'python tests/smoke_test.py'],
+    ['EC2: quick sanity sweep', 'python benchmark/bench.py --quick'],
+    ['EC2: full baseline', 'python benchmark/bench.py --tag qwen1.5b-a10g'],
+    ['EC2: view results', 'python benchmark/summarize.py results/*_qwen1.5b-a10g'],
+    ['Laptop: pull results', 'rsync -avz ubuntu@<EC2_IP>:~/00-vllm/results/ 00-vllm/results/'],
+  ];
+  [[A, '#runbook-a', 'Deploy'], [B, '#runbook-b', 'Measure']].forEach(([L, sel, title]) => {
+    const box = $(sel); box.appendChild(el('h3', { style: 'margin-bottom:8px' }, title));
+    L.forEach(([label, cmd]) => { if (label) box.appendChild(el('div', { class: 'small muted', style: 'margin-top:10px' }, label)); box.appendChild(cmdBox(cmd)); });
+  });
+})();
+</script>
+</body>
+</html>
