@@ -43,7 +43,7 @@ WORDS = (
 ).split()
 
 METRIC_RE = re.compile(
-    r"^vllm:(num_requests_running|num_requests_waiting|gpu_cache_usage_perc|kv_cache_usage_perc)"
+    r"^(?:vllm|tiny):(num_requests_running|num_requests_waiting|gpu_cache_usage_perc|kv_cache_usage_perc)"
     r"(?:\{[^}]*\})?\s+([0-9.eE+-]+)$",
     re.MULTILINE,
 )

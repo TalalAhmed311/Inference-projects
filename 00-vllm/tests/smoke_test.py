@@ -122,9 +122,11 @@ async def main():
     async def metrics():
         resp = await http.get(f"{root}/metrics")
         resp.raise_for_status()
-        names = {line.split("{")[0].split(" ")[0] for line in resp.text.splitlines() if line.startswith("vllm:")}
-        assert names, "no vllm:* metrics"
-        return f"{len(names)} vllm metrics"
+        # vllm:* from vLLM, tiny:* from the Stage 2 tiny_engine
+        names = {line.split("{")[0].split(" ")[0] for line in resp.text.splitlines()
+                 if line.startswith(("vllm:", "tiny:"))}
+        assert names, "no vllm:* or tiny:* metrics"
+        return f"{len(names)} engine metrics"
 
     print(f"Target: {args.base_url}\n")
     await r.check("GET /health", health())

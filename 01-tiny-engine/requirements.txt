@@ -1,0 +1,10 @@
+# Runtime + dev deps. On the GPU box, the default PyPI torch wheel for Linux ships with CUDA.
+torch>=2.4
+transformers>=4.56
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.5
+# tests / benchmarks
+pytest>=8
+httpx>=0.27
+openai>=1.40

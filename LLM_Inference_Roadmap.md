@@ -83,6 +83,8 @@ Ask:
 
 ## 2. Stage 1 — Start With vLLM
 
+> **Status: ✅ complete (2026-10-05).** Folder `00-vllm/`. Baseline on an A10G with Qwen2.5-1.5B-Instruct and vLLM 0.31.0: 8.15 ms TPOT (122 tok/s) for one request, 4,087 out tok/s at concurrency 64, TTFT 21 / 46 / 136 ms for 128 / 512 / 2048-token prompts. Full write-up: `00-vllm/results/REPORT.md`.
+
 ### Goal
 
 Get a real production inference system running and understand its architecture.
@@ -137,33 +139,58 @@ GPU
 
 ## 3. Stage 2 — Build a Tiny Inference Engine
 
+> **Status: 🚧 in progress.** Folder `01-tiny-engine/`.
+
 Build the thing you are actually interested in building.
 
 Do this in Python/PyTorch initially.
 
 Do not write CUDA yet.
 
-### Initial architecture
+### Design decision: reuse the Qwen model, own everything around it
+
+The transformer itself is **not** written from scratch. The engine loads the same model family used in Stage 1 (`Qwen/Qwen2.5-1.5B-Instruct`, a `Qwen2ForCausalLM`) through Hugging Face `transformers` and treats it as the forward pass.
+
+Everything an inference engine is actually responsible for is ours:
+
+- tokenization, the chat template and incremental detokenization
+- the request lifecycle and the generation loop
+- sampling (temperature, top-k, top-p, min-p, penalties, seeds)
+- stop conditions (EOS, `max_tokens`, stop strings, `ignore_eos`)
+- the scheduler, the KV cache, batching and serving
+
+This keeps the focus on the engine, and makes comparisons fair: same weights, same tokenizer and same chat template as the vLLM baseline.
+
+The model still leaves room for the later stages:
+
+- **KV cache (Stage 3) and paged KV (Stage 4):** the HF model accepts a custom `Cache` object, so our own cache implementation can be plugged into its attention layers.
+- **Batching (Stage 5):** the forward pass takes ragged batches through attention masks and position ids.
+
+If a later stage needs control the HF modules don't give (for example, a custom paged-attention kernel in Stage 14), the `ModelRunner` interface lets that one piece be swapped without touching the rest of the engine.
+
+### Architecture
 
 ```text
-tiny-inference/
+01-tiny-engine/
 │
-├── model/
-│   ├── transformer
-│   ├── attention
-│   ├── rope
-│   └── generation
+├── tiny_engine/
+│   ├── config.py          # EngineConfig: model, device, dtype, max_model_len
+│   ├── model/
+│   │   ├── loader.py      # load Qwen2 weights via transformers
+│   │   └── runner.py      # ModelRunner: token ids → next-token logits
+│   ├── tokenizer.py       # chat template, encode, incremental detokenizer
+│   ├── sampling.py        # SamplingParams + Sampler
+│   ├── request.py         # Request state, stop conditions, outputs
+│   ├── scheduler.py       # V0: FIFO, one request at a time
+│   ├── engine.py          # LLMEngine: add_request / step / generate
+│   ├── async_engine.py    # engine loop thread ↔ asyncio API server
+│   ├── metrics.py         # counters + Prometheus text
+│   └── serving/           # OpenAI-compatible FastAPI server
 │
-├── cache/
-│   └── kv_cache
-│
-├── scheduler/
-│
-├── batching/
-│
-├── serving/
-│
-└── benchmarks/
+├── scripts/               # generate.py CLI, serve.sh
+├── tests/                 # sampler unit tests, HF parity, API tests
+├── benchmarks/            # offline engine benchmark
+└── results/
 ```
 
 ### Initial flow
@@ -182,9 +209,19 @@ sampling
 token
 ```
 
+V0 has **no KV cache**: every step runs the full sequence (prompt + everything generated so far) through the model. That's deliberately slow, and it's the baseline Stage 3 improves on.
+
+### Reuse the Stage 1 harness
+
+The engine serves the same OpenAI-compatible API as vLLM, so `00-vllm/tests/smoke_test.py` and `00-vllm/benchmark/bench.py` run against it unchanged. Every later stage gets measured with the same tool as the production engine.
+
 ### Goal
 
-Get a working autoregressive inference loop and establish a baseline.
+Get a working autoregressive inference loop and establish a baseline:
+
+- greedy output identical to `transformers` for the same model
+- TTFT, TPOT and tokens/sec measured with the same benchmark as vLLM
+- step time vs sequence length, showing the O(n) cost per step of having no KV cache
 
 ---
 
@@ -845,7 +882,9 @@ Prioritize the parts that connect naturally to your inference work.
 
 ## 19. Repository Structure
 
-Recommended main repository:
+Recommended main repository.
+
+Stages 3–7 extend the single `tiny_engine` package in `01-tiny-engine/` rather than copying it. Each new technique is added as a selectable version (for example, cache = none | contiguous | paged), so older versions stay runnable for before/after comparisons. Each stage's numbered folder holds that stage's write-up, benchmarks and results.
 
 ```text
 llm-inference-lab/
@@ -855,11 +894,15 @@ llm-inference-lab/
 │   ├── architecture-notes/
 │   └── request-trace/
 │
-├── 01-tiny-engine/
-│   ├── model/
-│   ├── generation/
-│   ├── serving/
-│   └── benchmarks/
+├── 01-tiny-engine/          # the engine package that later stages extend
+│   ├── tiny_engine/
+│   │   ├── model/            # Qwen2 via transformers + ModelRunner
+│   │   ├── serving/          # OpenAI-compatible server
+│   │   └── ...               # tokenizer, sampling, scheduler, engine
+│   ├── scripts/
+│   ├── tests/
+│   ├── benchmarks/
+│   └── results/
 │
 ├── 02-kv-cache/
 │   ├── implementation/
