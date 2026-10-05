@@ -25,7 +25,7 @@ WORDS = (
     "night river city music table paper light field state power market road voice"
 ).split()
 
-# Natural prompts for benchmarks where content matters (speculative decoding acceptance, quality).
+# Natural prompts for benchmarks where content matters (prefix reuse, quality).
 CHAT_PROMPTS = [
     "Explain how a KV cache speeds up autoregressive decoding.",
     "Write a short story about a lighthouse keeper who finds a message in a bottle.",

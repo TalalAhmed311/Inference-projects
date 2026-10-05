@@ -22,7 +22,7 @@ Same concurrency ramp and system metrics as Experiment 02, but against **tiny-en
 | `tiny_paged` | paged KV (FIFO, no continuous batching) |
 | `tiny_paged_batching` | paged + continuous batching |
 | `tiny_paged_batch_chunk_prefix` | paged + batching + chunked prefill + prefix |
-| `tiny_all` | `all` (paged, batching, chunked, prefix, **spec**, **int8**) |
+| `tiny_all` | `all` (paged, batching, chunked, prefix, **int8**) — *was* also `spec`; removed |
 
 Workload: fixed short prompt, `max_tokens=64`, concurrency 1→16, streaming client. Metrics: TTFT/TPOT/QPS/tok/s + CPU/RAM/GPU/disk (coarse).
 
@@ -38,9 +38,10 @@ Workload: fixed short prompt, `max_tokens=64`, concurrency 1→16, streaming cli
 | tiny_paged | 0.57 | 36 | 26.4 s | 27.8 ms | 19.5 GiB | 0 |
 | **tiny_paged_batching** | **6.81** | **436** | **136 ms** | 35.1 ms | 19.6 GiB | 0 |
 | **tiny … + chunk + prefix** | **7.16** | **458** | **79 ms** | 34.1 ms | 19.9 GiB | 0 |
-| tiny_all | 0 | 0 | — | — | 19.9 GiB | **8/8** |
+| **tiny_all (no spec, int8)** | **5.03** | **322** | **109 ms** | 48.7 ms | 19.9 GiB | 0 |
+| tiny_all (old, with spec) | 0 | 0 | — | — | 19.9 GiB | **8/8** |
 
-Continuous batching is the win: ~**12× QPS / ~12× tok/s** vs plain HF or tiny without batching. Prefix+chunk adds a bit more and cuts TTFT further on this shared-prompt-ish load.
+Continuous batching is the win: ~**12× QPS / ~12× tok/s** vs plain HF or tiny without batching. Prefix+chunk adds a bit more and cuts TTFT further on this shared-prompt-ish load. **`all` with int8 works after removing speculative decode**, but int8 weight dequant slows TPOT (~49 ms vs ~34 ms bf16), so QPS is lower than bf16 batching+prefix.
 
 ---
 
@@ -60,15 +61,30 @@ Same story as plain HF: **QPS capped ~0.55–0.68**; TTFT grows with queue. KV m
 
 GPU util still ~40–45% (Python/SDPA path, not CUDA-graph saturated). CPU ~14%, RAM fine, disk ~0.
 
-### `tiny_all` — failed
-Speculative decode bug in `spec_decode/verify.py`:
+### `tiny_all` — re-run after removing speculative decoding
+
+Earlier, `--features all` included speculative decoding and crashed with:
 
 ```text
 logits = mask_fn(logits, len(emitted)) or logits
 RuntimeError: Boolean value of Tensor with more than one value is ambiguous
 ```
 
-Server starts; every request dies on first step. Not a capacity result — needs a one-line fix (`if mask_fn(...) is not None` style) before re-running `all`.
+**Cause:** `_mask_logits` returned a Tensor; `accept_tokens` used `tensor or logits`, which Python cannot truth-test on multi-element tensors.
+
+**Fix:** speculative decoding removed. `all` = `paged,batching,chunked,prefix,int8`.
+
+**Re-run** `20261005_182632_tiny_all_no_spec` (errors=0):
+
+| Conc | QPS | out tok/s | TTFT p50 | TPOT p50 | GPU util mean % |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 0.39 | 24.7 | 45 ms | 40.0 ms | 80.7 |
+| 2 | 0.75 | 48.0 | 86 ms | 40.9 ms | 82.4 |
+| 4 | 1.46 | 93.2 | 88 ms | 42.1 ms | 79.3 |
+| 8 | 2.79 | 178.6 | 94 ms | 43.9 ms | 74.1 |
+| 16 | 5.03 | 321.8 | 109 ms | 48.7 ms | 74.5 |
+
+vs bf16 `paged+batch+chunk+prefix` at conc=16 (**7.16 QPS / 458 tok/s**): int8 here trades memory for speed — our QuantLinear dequantizes every forward, so it is **slower** than bf16 on this 1.5B path (higher GPU util, lower tok/s).
 
 ---
 
@@ -99,4 +115,4 @@ bash scripts/run_exp_tiny_multireq.sh
 |---|---|---|
 | 01 | `EXPERIMENT_01_single_request.md` | done |
 | 02 | `REPORT_PLAIN_HF_SERVER.md` | done |
-| 03 | this file | done (`all` broken on spec) |
+| 03 | this file | done (`all` re-run OK without spec) |

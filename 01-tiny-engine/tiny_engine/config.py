@@ -6,7 +6,6 @@ Each stage adds options; the defaults reproduce Stage 2 (V0: no KV cache, FIFO, 
     Stage 4  kv_cache="paged"                 16-token blocks, allocated on demand
     Stage 5  scheduler="static"|"continuous"  batching; enable_chunked_prefill + token budget
     Stage 6  enable_prefix_caching=True       reuse KV blocks of shared prompt prefixes
-    Stage 7  speculative_model=...            draft model proposes, target verifies
     Stage 8  quantization="int8"|"int4"|"fp8" weight-only quantized linear layers
 """
 
@@ -61,10 +60,6 @@ class EngineConfig:
     # Stage 6
     enable_prefix_caching: bool = False
 
-    # Stage 7
-    speculative_model: str | None = None
-    num_speculative_tokens: int = 4
-
     # Stage 8
     quantization: str | None = None
     quant_group_size: int = 128
@@ -79,16 +74,16 @@ class EngineConfig:
         if self.kv_cache == "none":
             if self.scheduler != "fifo":
                 raise ValueError("batching needs a KV cache: set kv_cache to 'contiguous' or 'paged'")
-            if self.enable_prefix_caching or self.speculative_model:
-                raise ValueError("prefix caching and speculative decoding need a KV cache")
+            if self.enable_prefix_caching:
+                raise ValueError("prefix caching needs a KV cache")
         if self.enable_prefix_caching and self.kv_cache != "paged":
             raise ValueError("prefix caching works on blocks: it needs kv_cache='paged'")
         if self.enable_chunked_prefill and self.scheduler != "continuous":
             raise ValueError("chunked prefill needs scheduler='continuous'")
         if self.quantization is not None and self.quantization not in QUANT_METHODS:
             raise ValueError(f"quantization must be one of {QUANT_METHODS} or None")
-        if self.block_size < 1 or self.max_num_seqs < 1 or self.num_speculative_tokens < 0:
-            raise ValueError("block_size and max_num_seqs must be >= 1, num_speculative_tokens >= 0")
+        if self.block_size < 1 or self.max_num_seqs < 1:
+            raise ValueError("block_size and max_num_seqs must be >= 1")
         if not 0 < self.gpu_memory_utilization <= 1:
             raise ValueError("gpu_memory_utilization must be in (0, 1]")
 
@@ -100,8 +95,6 @@ class EngineConfig:
             parts.append(f"chunked(budget={self.max_num_batched_tokens})")
         if self.enable_prefix_caching:
             parts.append("prefix-cache")
-        if self.speculative_model:
-            parts.append(f"spec({self.speculative_model.split('/')[-1]}, k={self.num_speculative_tokens})")
         if self.quantization:
             parts.append(f"quant={self.quantization}")
         return " ".join(parts)

@@ -46,7 +46,7 @@ class BaseScheduler(ABC):
         self.max_num_seqs = max_num_seqs
         self.max_num_batched_tokens = max_num_batched_tokens
         self.free_fn = free_fn or ((lambda req: kv.free(req.request_id)) if kv is not None else (lambda req: None))
-        self.reserve_extra = reserve_extra  # speculative tokens that may be written past the end
+        self.reserve_extra = reserve_extra  # extra slots reserved past the end (unused; kept for API)
         self.reserve_full_context = reserve_full_context
         self.waiting: deque[Request] = deque()
         self.running: list[Request] = []

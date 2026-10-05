@@ -4,9 +4,9 @@
 #   bash scripts/serve.sh
 #   MODEL=Qwen/Qwen2.5-0.5B-Instruct PORT=8002 bash scripts/serve.sh
 #   PRESET=batching bash scripts/serve.sh           # Stage 5 engine (v0 | kv | paged | batching | prefix)
-#   FEATURES=paged,batching,prefix,spec bash scripts/serve.sh   # any combination (tiny-engine features)
+#   FEATURES=paged,batching,prefix bash scripts/serve.sh   # any combination (tiny-engine features)
 #   FEATURES=all bash scripts/serve.sh              # every feature
-#   bash scripts/serve.sh --speculative-model Qwen/Qwen2.5-0.5B-Instruct   # extra args go to the server
+#   bash scripts/serve.sh --quantization int8       # extra args go to the server
 
 set -euo pipefail
 

@@ -1,7 +1,7 @@
 """CachedModelRunner (Stage 3+): run only the NEW tokens of each sequence; read the rest from the KV pool.
 
 The engine hands it a list of BatchItems. One item is one sequence's slice for this step:
-a whole prompt, a prefill chunk, one decode token, or 1 + k tokens to verify (speculative decoding).
+a whole prompt, a prefill chunk, or one decode token.
 """
 
 from __future__ import annotations

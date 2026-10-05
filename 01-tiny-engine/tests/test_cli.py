@@ -5,7 +5,7 @@ import argparse
 import pytest
 
 from tiny_engine.cli import add_engine_args, config_from_args, enabled_features
-from tiny_engine.features import DEFAULT_DRAFT_MODEL, parse_feature_list, resolve_features
+from tiny_engine.features import parse_feature_list, resolve_features
 from tiny_engine.main import main
 
 
@@ -15,14 +15,14 @@ def parse(*argv):
 
 def test_default_is_stage2():
     c = parse()
-    assert (c.kv_cache, c.scheduler, c.speculative_model, c.quantization) == ("none", "fifo", None, None)
+    assert (c.kv_cache, c.scheduler, c.quantization) == ("none", "fifo", None)
 
 
 def test_pick_any_combination():
     c = parse("--features", "paged,prefix")
     assert c.kv_cache == "paged" and c.enable_prefix_caching and c.scheduler == "fifo"
-    c = parse("--features", "kv", "--features", "spec")  # repeatable
-    assert c.kv_cache == "contiguous" and c.speculative_model == DEFAULT_DRAFT_MODEL
+    c = parse("--features", "kv", "--features", "int8")  # repeatable
+    assert c.kv_cache == "contiguous" and c.quantization == "int8"
     c = parse("-f", "batching,int4")
     assert c.scheduler == "continuous" and c.quantization == "int4"
 
@@ -32,8 +32,6 @@ def test_requirements_are_added():
     assert names == ["paged", "batching", "chunked"]  # chunked → batching → some KV cache (paged)
     assert settings["kv_cache"] == "paged" and settings["enable_chunked_prefill"]
     assert resolve_features(["prefix"])[0] == ["paged", "prefix"]
-    assert resolve_features(["spec"])[0] == ["paged", "spec"]
-    assert resolve_features(["kv", "spec"])[0] == ["kv", "spec"]  # an explicit KV choice is kept
 
 
 def test_conflicts_are_rejected():
@@ -50,18 +48,16 @@ def test_conflicts_are_rejected():
 def test_all_alias_and_turning_single_features_off():
     c = parse("--features", "all")
     assert c.kv_cache == "paged" and c.scheduler == "continuous" and c.enable_chunked_prefill
-    assert c.enable_prefix_caching and c.speculative_model and c.quantization == "int8"
-    assert len(enabled_features(c)) == 6
-    c = parse("--features", "all", "--quantization", "none", "--speculative-model", "none", "--no-enable-prefix-caching")
-    assert c.quantization is None and c.speculative_model is None and not c.enable_prefix_caching
+    assert c.enable_prefix_caching and c.quantization == "int8"
+    assert len(enabled_features(c)) == 5
+    c = parse("--features", "all", "--quantization", "none", "--no-enable-prefix-caching")
+    assert c.quantization is None and not c.enable_prefix_caching
     assert c.enable_chunked_prefill  # the rest stays on
 
 
 def test_flags_override_features_and_presets():
     c = parse("--preset", "batching", "--features", "prefix", "--max-num-batched-tokens", "512", "--max-num-seqs", "16")
     assert c.enable_prefix_caching and c.max_num_batched_tokens == 512 and c.max_num_seqs == 16
-    c = parse("--features", "spec", "--num-speculative-tokens", "6", "--speculative-model", "my/draft")
-    assert (c.num_speculative_tokens, c.speculative_model) == (6, "my/draft")
 
 
 def test_invalid_flag_combinations_are_rejected():
@@ -74,8 +70,9 @@ def test_invalid_flag_combinations_are_rejected():
 def test_command_features_and_config(capsys):
     assert main(["features"]) == 0
     out = capsys.readouterr().out
-    for name in ("paged", "batching", "chunked", "prefix", "spec", "int8"):
+    for name in ("paged", "batching", "chunked", "prefix", "int8"):
         assert name in out
+    assert "spec" not in out.split()
     assert main(["config", "--features", "chunked,prefix"]) == 0
     out = capsys.readouterr().out
     assert "added as required: paged, batching" in out and "prefix caching" in out

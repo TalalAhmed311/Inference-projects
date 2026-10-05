@@ -10,7 +10,7 @@ For every layer:
   3. causal attention: a query at position p sees keys at positions <= p.
 
 Two groups, like vLLM's separate prefill and decode kernels:
-  * short queries (decode, speculative verification): one batched SDPA call, padded to the
+  * short queries (decode): one batched SDPA call, padded to the
     longest query and the longest context in the group;
   * long queries (prefill chunks): one SDPA call per sequence, so a 2,000-token prompt doesn't
     force every decode sequence to be padded to 2,000 queries.

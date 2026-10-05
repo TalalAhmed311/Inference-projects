@@ -65,7 +65,7 @@ class RequestOutput:
 
     @staticmethod
     def merge(outputs: list[RequestOutput]) -> RequestOutput:
-        """Combine several outputs of one request from the same step (speculative decoding)."""
+        """Combine several outputs of one request from the same step."""
         last = outputs[-1]
         last.new_token_ids = [t for o in outputs for t in o.new_token_ids]
         last.delta_text = "".join(o.delta_text for o in outputs)

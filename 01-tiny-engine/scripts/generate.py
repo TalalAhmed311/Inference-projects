@@ -5,7 +5,6 @@
     python scripts/generate.py --prompt "Count to 20" --temperature 0 --max-tokens 64 --show-steps
     python scripts/generate.py --raw --prompt "The capital of France is" --max-tokens 8
     python scripts/generate.py --preset paged --prompt "Hi" --show-steps        # Stage 4 engine
-    python scripts/generate.py --kv-cache paged --speculative-model Qwen/Qwen2.5-0.5B-Instruct --prompt "Write a haiku"
     python scripts/generate.py --features paged,batching,prefix --prompt "Write a haiku"
     python scripts/generate.py --features all --quantization none --prompt "Write a haiku"   # all but int8
 
@@ -74,9 +73,6 @@ def main() -> None:
         print(f"    TTFT {ttft * 1e3:.1f} ms | TPOT {tpot * 1e3:.2f} ms | {n / e2e:.1f} tok/s | e2e {e2e:.2f} s")
         print(f"    tokens run through the model: {sum(s.seq_len for s in engine.step_log):,} to generate {n}"
               + (" (no KV cache: every step recomputes the whole sequence)" if engine.kv is None else ""))
-        if engine.stats.spec_draft_tokens:
-            print(f"    speculative: {engine.stats.spec_accepted_tokens}/{engine.stats.spec_draft_tokens} draft tokens "
-                  f"accepted ({engine.stats.spec_acceptance_rate:.0%}), {len(engine.step_log)} target passes")
         if args.show_steps:
             print(f"    {'step':>5} {'phase':>8} {'tokens in':>9} {'context':>8} {'forward ms':>11} {'sample ms':>10}")
             for i, s in enumerate(engine.step_log):

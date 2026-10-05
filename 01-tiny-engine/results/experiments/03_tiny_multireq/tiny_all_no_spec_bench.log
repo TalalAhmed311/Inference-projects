@@ -1,0 +1,11 @@
+>>> concurrency=1 num_requests=8
+    qps=0.385  out_tok/s=24.7  ttft_p50=44.91ms  tpot_p50=40.0ms  errors=0  gpu_util_mean=80.7  gpu_mem_peak=19899.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=2 num_requests=8
+    qps=0.749  out_tok/s=48.0  ttft_p50=85.53ms  tpot_p50=40.94ms  errors=0  gpu_util_mean=82.35  gpu_mem_peak=19899.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=4 num_requests=16
+    qps=1.456  out_tok/s=93.2  ttft_p50=88.09ms  tpot_p50=42.14ms  errors=0  gpu_util_mean=79.286  gpu_mem_peak=19899.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=8 num_requests=32
+    qps=2.791  out_tok/s=178.6  ttft_p50=93.91ms  tpot_p50=43.92ms  errors=0  gpu_util_mean=74.136  gpu_mem_peak=19899.0MiB  disk_read_peak=0.0MiB/s
+>>> concurrency=16 num_requests=64
+    qps=5.029  out_tok/s=321.8  ttft_p50=108.73ms  tpot_p50=48.69ms  errors=0  gpu_util_mean=74.458  gpu_mem_peak=19901.0MiB  disk_read_peak=0.0MiB/s
+wrote /home/ubuntu/inference/Inference-projects/01-tiny-engine/results/experiments/03_tiny_multireq/20261005_182632_tiny_all_no_spec

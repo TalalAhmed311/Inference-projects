@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 @dataclass
 class StepRecord:
     request_id: str  # the request (batch of 1) or "batch"
-    phase: str  # "prefill" if any sequence ran more than one token, else "decode"; "spec" for verify steps
+    phase: str  # "prefill" if any sequence ran more than one token, else "decode"
     seq_len: int  # tokens fed to the model this step
     forward_ms: float
     sample_ms: float
@@ -35,14 +35,6 @@ class EngineStats:
     ttft_count: int = 0
     e2e_seconds_sum: float = 0.0
     e2e_count: int = 0
-    spec_steps: int = 0
-    spec_draft_tokens: int = 0
-    spec_accepted_tokens: int = 0
-    spec_emitted_tokens: int = 0
-
-    @property
-    def spec_acceptance_rate(self) -> float | None:
-        return self.spec_accepted_tokens / self.spec_draft_tokens if self.spec_draft_tokens else None
 
     def render(self, gauges: dict[str, float]) -> str:
         lines = []
@@ -59,8 +51,6 @@ class EngineStats:
             f"tiny:time_to_first_token_seconds_count {self.ttft_count}",
             f"tiny:e2e_request_latency_seconds_sum {self.e2e_seconds_sum:.6f}",
             f"tiny:e2e_request_latency_seconds_count {self.e2e_count}",
-            f"tiny:spec_decode_num_draft_tokens_total {self.spec_draft_tokens}",
-            f"tiny:spec_decode_num_accepted_tokens_total {self.spec_accepted_tokens}",
         ]
         for reason in ("stop", "length", "abort"):
             lines.append(f'tiny:request_success_total{{finished_reason="{reason}"}} {self.finished[reason]}')

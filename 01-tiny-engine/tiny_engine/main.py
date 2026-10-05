@@ -6,13 +6,13 @@
     tiny-engine chat     [engine options]    chat in the terminal, with per-reply metrics
     tiny-engine generate [engine options] "prompt" ["prompt" ...]
     tiny-engine serve    [engine options] [--port 8001]
-    tiny-engine bench    STAGE [benchmark options]      STAGE = 2 | 3 | 4 | 5 | 6 | 7 | 8 | online
+    tiny-engine bench    STAGE [benchmark options]      STAGE = 2 | 3 | 4 | 5 | 6 | 8 | online
 
 Engine options are the same everywhere; the main one is --features:
 
     tiny-engine chat --features paged,batching,prefix
     tiny-engine chat --features all --quantization none
-    tiny-engine serve --features spec --num-speculative-tokens 6 --port 8001
+    tiny-engine serve --features paged,batching --port 8001
     tiny-engine bench 5 --features prefix --rate 8
 
 Also available as `python -m tiny_engine ...`.
@@ -32,7 +32,7 @@ from pathlib import Path
 
 from tiny_engine.cli import add_engine_args, config_from_args, config_values, enabled_features
 from tiny_engine.config import EngineConfig
-from tiny_engine.features import ALIASES, DEFAULT_DRAFT_MODEL, FEATURES, features_table, parse_feature_list, resolve_features
+from tiny_engine.features import ALIASES, FEATURES, features_table, parse_feature_list, resolve_features
 
 STAGE_DIR = Path(__file__).resolve().parent.parent
 BENCH_DIR = STAGE_DIR / "benchmarks"
@@ -42,7 +42,6 @@ BENCHMARKS = {
     "4": ("stage4_paged_capacity.py", [], "contiguous vs paged under the same KV memory"),
     "5": ("stage5_scheduling.py", [], "fifo vs static vs continuous vs chunked, Poisson arrivals"),
     "6": ("stage6_prefix_caching.py", [], "shared system prompt with and without prefix caching"),
-    "7": ("stage7_speculative.py", [], "speculative decoding: k, batch size, temperature"),
     "8": ("stage8_quantization.py", [], "bf16 vs int8 vs int4 vs fp8: memory, speed, quality"),
     "online": ("run_online.sh", [], "Stage 1 bench.py against a running tiny-engine server"),
 }
@@ -85,7 +84,6 @@ def print_features(config: EngineConfig) -> None:
 
 def stream_request(engine, prompt_ids: list[int], params) -> tuple[str, dict]:
     """Run one request, printing text as it streams. Ctrl-C stops it early."""
-    before = (engine.stats.spec_draft_tokens, engine.stats.spec_accepted_tokens)
     t0 = time.perf_counter()
     rid = engine.add_request(prompt_ids, params)
     ttft, final, pieces = None, None, []
@@ -114,9 +112,6 @@ def stream_request(engine, prompt_ids: list[int], params) -> tuple[str, dict]:
         "tok_per_s": n / e2e if e2e else 0,
         "finish": final.finish_reason if final else None,
     }
-    drafted = engine.stats.spec_draft_tokens - before[0]
-    if drafted:
-        stats["spec_acceptance"] = (engine.stats.spec_accepted_tokens - before[1]) / drafted
     return "".join(pieces), stats
 
 
@@ -126,8 +121,6 @@ def format_stats(s: dict) -> str:
         parts.append(f"TPOT {s['tpot_ms']:.1f} ms")
     parts.append(f"{s['tok_per_s']:.1f} tok/s")
     parts.append(f"prompt {s['prompt_tokens']} tok" + (f" ({s['cached_tokens']} from prefix cache)" if s["cached_tokens"] else ""))
-    if "spec_acceptance" in s:
-        parts.append(f"draft accepted {s['spec_acceptance']:.0%}")
     if s["finish"]:
         parts.append(f"finish={s['finish']}")
     return "  · ".join(parts)
@@ -140,7 +133,7 @@ def cmd_features(args) -> int:
     print(features_table())
     print("\nexamples:\n  tiny-engine chat --features paged,batching,prefix\n"
           "  tiny-engine chat --features all --quantization none\n"
-          "  tiny-engine serve --features spec --num-speculative-tokens 6")
+          "  tiny-engine serve --features paged,batching --port 8001")
     return 0
 
 
@@ -187,7 +180,7 @@ CHAT_HELP = """commands:
   /reset              forget the conversation
   /system TEXT        set the system message (and reset)
   /set NAME VALUE     temperature | top_p | top_k | max_tokens | seed
-  /stats              engine counters (KV usage, prefix hits, speculative acceptance)
+  /stats              engine counters (KV usage, prefix hits)
   /features           what this engine has switched on
   /exit               quit (also Ctrl-D)"""
 
@@ -228,8 +221,6 @@ def cmd_chat(args) -> int:
             elif cmd == "/stats":
                 for k, v in engine.gauges().items():
                     print(f"  {k:<30} {v}")
-                if engine.stats.spec_draft_tokens:
-                    print(f"  {'spec_acceptance_rate':<30} {engine.stats.spec_acceptance_rate:.2%}")
                 print(f"  {'tokens_generated':<30} {engine.stats.generation_tokens}")
             elif cmd == "/features":
                 print_features(engine.config)
@@ -298,8 +289,6 @@ def cmd_menu(args) -> int:
     order = list(FEATURES)
     selected = set(parse_feature_list(args.features))
     model = args.model or EngineConfig.model
-    draft = args.speculative_model or DEFAULT_DRAFT_MODEL
-    k = args.num_speculative_tokens or 4
     while True:
         print("\n tiny-engine — choose features\n")
         for i, name in enumerate(order, 1):
@@ -307,8 +296,6 @@ def cmd_menu(args) -> int:
             mark = "x" if name in selected else " "
             print(f"  [{mark}] {i:>2}  {name:<9} stage {f.stage}  {f.summary}")
         print(f"\n  model: {model}")
-        if "spec" in selected:
-            print(f"  draft: {draft}  (k = {k})")
         try:
             names, _ = resolve_features(sorted(selected, key=order.index))
             added = [n for n in names if n not in selected]
@@ -318,7 +305,7 @@ def cmd_menu(args) -> int:
         except ValueError as exc:
             status = str(exc)
             print(f"  ! {status}")
-        print("\n  numbers toggle features (e.g. 2 6 7) · a = all · n = none · m = model · d = draft · k = draft tokens")
+        print("\n  numbers toggle features (e.g. 2 6) · a = all · n = none · m = model")
         print("  c = chat · g = generate · s = serve · b = benchmark · v = view config · q = quit")
         try:
             choice = input("\n› ").strip().lower()
@@ -351,10 +338,6 @@ def cmd_menu(args) -> int:
             selected = set()
         elif cmd == "m":
             model = _ask("model", model)
-        elif cmd == "d":
-            draft = _ask("draft model (same tokenizer as the target)", draft)
-        elif cmd == "k":
-            k = int(_ask("speculative tokens per step", str(k)))
         elif cmd in ("c", "g", "s", "b", "v"):
             if status:
                 print(f"  fix this first: {status}")
@@ -362,8 +345,6 @@ def cmd_menu(args) -> int:
             argv = ["--model", model]
             if selected:
                 argv += ["--features", ",".join(sorted(selected, key=order.index))]
-            if "spec" in selected:
-                argv += ["--speculative-model", draft, "--num-speculative-tokens", str(k)]
             if cmd == "c":
                 return main(["chat", *argv])
             if cmd == "g":

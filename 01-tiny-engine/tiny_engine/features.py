@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-DEFAULT_DRAFT_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
 ANY_KV = "<kv>"  # requirement: some KV cache (defaults to paged)
 
 
@@ -36,26 +35,23 @@ FEATURES: dict[str, Feature] = {f.name: f for f in [
             {"enable_chunked_prefill": True, "max_num_batched_tokens": 2048}, requires=("batching",)),
     Feature("prefix", 6, "prefix caching: reuse KV blocks of shared prompt prefixes",
             {"enable_prefix_caching": True}, requires=("paged",)),
-    Feature("spec", 7, f"speculative decoding: {DEFAULT_DRAFT_MODEL.split('/')[-1]} drafts 4 tokens per step",
-            {"speculative_model": DEFAULT_DRAFT_MODEL, "num_speculative_tokens": 4}, requires=(ANY_KV,)),
     Feature("int8", 8, "int8 weights (per-channel, weight-only)", {"quantization": "int8"}, group="quantization"),
     Feature("int4", 8, "int4 weights (group of 128, weight-only)", {"quantization": "int4"}, group="quantization"),
     Feature("fp8", 8, "fp8 weights (e4m3, per-channel, weight-only)", {"quantization": "fp8"}, group="quantization"),
 ]}
 
 ALIASES: dict[str, list[str]] = {
-    "all": ["paged", "batching", "chunked", "prefix", "spec", "int8"],
+    "all": ["paged", "batching", "chunked", "prefix", "int8"],
     "none": [],
     "v0": [],
     "contiguous": ["kv"],
     "continuous": ["batching"],
     "prefix-caching": ["prefix"],
-    "speculative": ["spec"],
 }
 
 
 def parse_feature_list(text: str | list[str] | None) -> list[str]:
-    """'paged, prefix' or ['paged', 'prefix,spec'] → ['paged', 'prefix', 'spec'] (aliases expanded)."""
+    """'paged, prefix' or ['paged', 'prefix,int8'] → ['paged', 'prefix', 'int8'] (aliases expanded)."""
     if not text:
         return []
     parts = text if isinstance(text, list) else [text]

@@ -2,7 +2,7 @@
 
 The key property: every engine configuration (Stages 2–7) must produce the SAME greedy tokens as
 Hugging Face's own `generate()`. A KV cache, paging, batching, chunking, prefix reuse, preemption
-and speculative decoding change speed and memory, never the output.
+and batching / caching change speed and memory, never the output.
 """
 
 import pytest
@@ -130,54 +130,24 @@ def test_stage6_second_request_reuses_prefix(make_engine, prompt_ids):
     assert second.output_token_ids == first.output_token_ids
 
 
-# ----------------------------------------------------------------------------- Stage 7
-
-
-def test_stage7_speculative_greedy_matches_transformers(make_engine, prompt_ids, reference):
-    from conftest import TEST_MODEL
-
-    # Draft = the same model: every proposal should be accepted, and output must be unchanged.
-    eng = make_engine(kv_cache="paged", scheduler="continuous", speculative_model=TEST_MODEL, num_speculative_tokens=4)
-    outs = eng.generate(prompt_ids, greedy(eng))
-    assert [o.output_token_ids for o in outs] == reference
-    assert eng.stats.spec_draft_tokens > 0
-    assert eng.stats.spec_acceptance_rate > 0.9
-
-
-def test_stage7_speculative_sampling_runs(make_engine, prompt_ids):
-    from conftest import TEST_MODEL
-
-    eng = make_engine(kv_cache="paged", scheduler="continuous", speculative_model=TEST_MODEL, num_speculative_tokens=4)
-    params = eng.sampling_params(max_tokens=32, temperature=0.8, seed=1, ignore_eos=True)
-    out = eng.generate([prompt_ids[0]], params)[0]
-    assert out.num_output_tokens == 32
-
-
 # ----------------------------------------------------------------------------- everything at once
 
 
 def test_all_features_together_match_transformers(make_engine, prompt_ids, reference):
-    """Paged + continuous + chunked prefill + prefix caching + speculative decoding in one engine.
+    """Paged + continuous + chunked prefill + prefix caching in one engine.
     (Quantization is left out here because it legitimately changes the logits.)"""
-    from conftest import TEST_MODEL
-
     eng = make_engine(kv_cache="paged", scheduler="continuous", enable_chunked_prefill=True,
-                      max_num_batched_tokens=40, enable_prefix_caching=True,
-                      speculative_model=TEST_MODEL, num_speculative_tokens=4)
+                      max_num_batched_tokens=40, enable_prefix_caching=True)
     first = eng.generate(prompt_ids, greedy(eng))
     second = eng.generate(prompt_ids, greedy(eng))  # second pass hits the prefix cache
     assert [o.output_token_ids for o in first] == reference
     assert [o.output_token_ids for o in second] == reference
-    assert eng.stats.spec_draft_tokens > 0
     assert any(o.num_cached_tokens > 0 for o in second)
 
 
 def test_all_features_preset_with_quantization_generates(make_engine, prompt_ids):
-    from conftest import TEST_MODEL
-
     eng = make_engine(kv_cache="paged", scheduler="continuous", enable_chunked_prefill=True,
-                      max_num_batched_tokens=2048, enable_prefix_caching=True,
-                      speculative_model=TEST_MODEL, num_speculative_tokens=4, quantization="int8")
+                      max_num_batched_tokens=2048, enable_prefix_caching=True, quantization="int8")
     outs = eng.generate(prompt_ids, eng.sampling_params(max_tokens=16, ignore_eos=True))
     assert all(o.num_output_tokens == 16 for o in outs)
 

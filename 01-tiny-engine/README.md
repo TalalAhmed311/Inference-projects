@@ -5,7 +5,7 @@ A small LLM inference engine in Python/PyTorch, built around the same model as t
 **The transformer is not reimplemented.** Embeddings, RMSNorms, q/k/v/o projections, the MLP, the rotary embedding and the LM head are Hugging Face's Qwen2 modules. The engine owns everything an inference engine is responsible for:
 - the layer loop and attention over our own KV cache;
 - the scheduler and batching;
-- sampling, streaming, prefix reuse, speculative decoding and quantized layers;
+- sampling, streaming, prefix reuse and quantized layers;
 - an OpenAI-compatible server.
 
 Because the server speaks vLLM's API, the Stage 1 smoke test and benchmark run against it unchanged.
@@ -19,7 +19,6 @@ Because the server speaks vLLM's API, the Stage 1 smoke test and benchmark run a
 | 4 | Why is my KV cache wasting memory? | `--kv-cache paged` (`--preset paged`) | `cache/paged.py` | `stage4_paged_capacity.py` | [docs](docs/stage4-paged-attention.md) |
 | 5 | Who gets the GPU each step? | `--scheduler fifo/static/continuous`, `--enable-chunked-prefill` (`--preset batching`) | `scheduler/` | `stage5_scheduling.py` | [docs](docs/stage5-scheduling.md) |
 | 6 | Reuse a shared system prompt | `--enable-prefix-caching` (`--preset prefix`) | `cache/prefix.py`, `cache/paged.py` | `stage6_prefix_caching.py` | [docs](docs/stage6-prefix-caching.md) |
-| 7 | Can a small model speed up a big one? | `--speculative-model … --num-speculative-tokens k` | `spec_decode/` | `stage7_speculative.py` | [docs](docs/stage7-speculative-decoding.md) |
 | 8 | What does INT8/INT4/FP8 buy? | `--quantization int8/int4/fp8` | `quantization/` | `stage8_quantization.py` | [docs](docs/stage8-quantization.md) |
 
 ## The `tiny-engine` command
@@ -33,7 +32,7 @@ tiny-engine config   [options]           show the resolved configuration (no mod
 tiny-engine chat     [options]           chat in the terminal, with metrics after every reply
 tiny-engine generate [options] "prompt"  one-shot prompts (--show-steps prints every engine step)
 tiny-engine serve    [options]           OpenAI-compatible server on :8001
-tiny-engine bench    STAGE [options]     run a stage benchmark: 2 3 4 5 6 7 8 online
+tiny-engine bench    STAGE [options]     run a stage benchmark: 2 3 4 5 6 8 online
 ```
 
 ### Choosing features
@@ -48,24 +47,23 @@ tiny-engine bench    STAGE [options]     run a stage benchmark: 2 3 4 5 6 7 8 on
 | `batching` | 5 | continuous batching |
 | `chunked` | 5 | chunked prefill, 2,048-token step budget |
 | `prefix` | 6 | prefix caching |
-| `spec` | 7 | speculative decoding, draft `Qwen2.5-0.5B-Instruct`, k = 4 |
 | `int8` · `int4` · `fp8` | 8 | quantized weights |
 
 Rules and aliases:
 - **Alternatives:** features in the same group are alternatives. You get one KV layout (`kv` or `paged`), one scheduler (`static` or `batching`) and one quantization.
-- **Requirements are added for you:** `prefix` → `paged`; `chunked` → `batching` → `paged`; `spec` → `paged`. `tiny-engine config` shows what was added.
-- **Aliases:** `all` = `paged,batching,chunked,prefix,spec,int8`; `none` = the Stage 2 engine.
+- **Requirements are added for you:** `prefix` → `paged`; `chunked` → `batching` → `paged`. `tiny-engine config` shows what was added.
+- **Aliases:** `all` = `paged,batching,chunked,prefix,int8`; `none` = the Stage 2 engine.
 
 ```bash
 tiny-engine chat --features paged,batching,prefix
 tiny-engine chat --features all --quantization none          # everything except int8 (our int8 is slower than bf16)
 tiny-engine generate --features kv --show-steps "Explain the KV cache"
-tiny-engine serve --features spec --num-speculative-tokens 6 --port 8001
+tiny-engine serve --features paged,batching --port 8001
 tiny-engine bench 6 --features prefix --system-tokens 2048
 tiny-engine config --features chunked,prefix                 # see the result without loading anything
 ```
 
-Individual flags always win over `--features` and `--preset`, so any setting can be tuned or switched off: `--max-num-seqs 32`, `--max-num-batched-tokens 512`, `--block-size 32`, `--speculative-model none`, `--quantization int4`, `--no-enable-prefix-caching`, `--kv-cache-memory-gib 4`, … Run `tiny-engine chat --help` for the full list.
+Individual flags always win over `--features` and `--preset`, so any setting can be tuned or switched off: `--max-num-seqs 32`, `--max-num-batched-tokens 512`, `--block-size 32`, `--quantization int4`, `--no-enable-prefix-caching`, `--kv-cache-memory-gib 4`, … Run `tiny-engine chat --help` for the full list.
 
 Impossible combinations are refused with a reason. For example, `--features kv,prefix` fails because prefix caching needs paged blocks.
 
@@ -114,7 +112,7 @@ Run `tiny-engine` with no arguments:
    per layer (HF modules): norm → q/k/v_proj → RoPE → OUR attention → o_proj → norm → MLP
                                    │          writes K/V to the pool, reads each sequence's
                                    │          context through its slot table
-            LM head on positions that sample → Sampler (or draft+verify, Stage 7)
+            LM head on positions that sample → Sampler
                                    │
             append tokens, stop checks, stream text deltas, free finished requests' KV
 ```
@@ -144,10 +142,9 @@ tiny_engine/
 │   ├── paged.py         Stage 4: blocks, block tables, ref counts, LRU of cached blocks
 │   └── prefix.py        Stage 6: chained block hashes
 ├── scheduler/           Stage 5: fifo.py, static.py, continuous.py (+ chunked prefill), base.py (preemption)
-├── spec_decode/         Stage 7: draft.py (proposer with its own KV), verify.py (accept/reject)
 ├── quantization/        Stage 8: linear.py (QuantLinear int8/int4/fp8), quantize.py
 ├── async_engine.py      engine thread ↔ asyncio streams
-├── metrics.py           tiny:* Prometheus metrics (running, waiting, KV usage, prefix hits, spec acceptance)
+├── metrics.py           tiny:* Prometheus metrics (running, waiting, KV usage, prefix hits)
 └── serving/             OpenAI-compatible FastAPI server
 benchmarks/              bench_offline.py (2/3), stage4…stage8 scripts, common.py, run_online.sh, data/
 tests/                   unit tests (no model) + engine/API tests (Qwen2.5-0.5B)
@@ -166,17 +163,15 @@ export HF_HOME=/mnt/data/inference/hf-cache      # reuse the Stage 1 model downl
 
 **Tests:**
 ```bash
-TINY_SKIP_MODEL_TESTS=1 pytest -q    # unit tests: caches, schedulers, attention vs dense, spec acceptance, quantization
+TINY_SKIP_MODEL_TESTS=1 pytest -q    # unit tests: caches, schedulers, attention vs dense, quantization
 pytest -q                            # + every engine mode vs transformers' greedy output (Qwen2.5-0.5B, fp32)
 ```
-`test_engine.py::test_mode_matches_transformers` and `test_all_features_together_match_transformers` are the key correctness checks. Contiguous, paged, static, continuous, chunked prefill, prefix caching, preemption and speculative decoding must all produce exactly HF's greedy tokens.
+`test_engine.py::test_mode_matches_transformers` and `test_all_features_together_match_transformers` are the key correctness checks. Contiguous, paged, static, continuous, chunked prefill, prefix caching and preemption must all produce exactly HF's greedy tokens.
 
 **Try each stage from the CLI:**
 ```bash
 python scripts/generate.py --prompt "Explain the KV cache." --temperature 0 --show-steps                 # Stage 2
 python scripts/generate.py --preset kv --prompt "Explain the KV cache." --temperature 0 --show-steps     # Stage 3
-python scripts/generate.py --preset paged --speculative-model Qwen/Qwen2.5-0.5B-Instruct \
-       --prompt "Write a haiku about GPUs" --temperature 0                                              # Stage 7
 python scripts/generate.py --preset paged --quantization int4 --prompt "Hello"                          # Stage 8
 ```
 
@@ -193,7 +188,6 @@ python benchmarks/bench_offline.py --kv-caches none contiguous paged    # Stages
 python benchmarks/stage4_paged_capacity.py                              # Stage 4
 python benchmarks/stage5_scheduling.py                                  # Stage 5
 python benchmarks/stage6_prefix_caching.py                              # Stage 6
-python benchmarks/stage7_speculative.py                                 # Stage 7
 python benchmarks/stage8_quantization.py                                # Stage 8
 ```
 
