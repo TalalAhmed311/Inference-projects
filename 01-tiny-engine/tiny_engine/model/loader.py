@@ -29,7 +29,9 @@ class LoadedModel:
 
     @property
     def weight_bytes(self) -> int:
-        return sum(p.numel() * p.element_size() for p in self.model.parameters())
+        # Buffers too: quantized layers (Stage 8) keep their packed weights and scales as buffers.
+        tensors = list(self.model.parameters()) + list(self.model.buffers())
+        return sum(t.numel() * t.element_size() for t in tensors)
 
 
 def load_model(name: str, device: torch.device, dtype: torch.dtype, revision: str | None = None,

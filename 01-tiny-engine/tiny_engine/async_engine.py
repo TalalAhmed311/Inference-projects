@@ -102,12 +102,11 @@ class AsyncEngine:
                 continue
             try:
                 outputs = self.engine.step()
-            except Exception as exc:  # noqa: BLE001 - fail the running request, keep serving others
+            except Exception as exc:  # noqa: BLE001 - fail the batch that was running, keep serving others
                 logger.exception("engine step failed")
-                running = self.engine.scheduler.running
-                if running is not None:
-                    self.engine.abort_request(running.request_id)
-                    self._dispatch(running.request_id, exc)
+                for req in list(self.engine.scheduler.running):
+                    self.engine.abort_request(req.request_id)
+                    self._dispatch(req.request_id, exc)
                 continue
             for out in outputs:
                 self._dispatch(out.request_id, out)

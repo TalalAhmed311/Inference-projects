@@ -8,6 +8,9 @@ Same endpoints the Stage 1 tools use against vLLM, so `00-vllm/tests/smoke_test.
     POST /v1/completions        (stream + non-stream)
 
     python -m tiny_engine.serving.api_server --model Qwen/Qwen2.5-1.5B-Instruct --port 8001
+    python -m tiny_engine.serving.api_server --preset prefix --port 8001     # Stage 6 engine
+    python -m tiny_engine.serving.api_server --features all --port 8001      # every feature on
+    tiny-engine serve --features paged,batching,prefix --port 8001         # same server via the CLI
 """
 
 from __future__ import annotations
@@ -27,7 +30,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
 
 from tiny_engine import __version__
 from tiny_engine.async_engine import AsyncEngine
-from tiny_engine.config import EngineConfig
+from tiny_engine.cli import add_engine_args, config_from_args, enabled_features
 from tiny_engine.engine import LLMEngine
 from tiny_engine.request import RequestOutput
 from tiny_engine.sampling import SamplingParams
@@ -136,8 +139,7 @@ def build_app(engine: LLMEngine) -> FastAPI:
 
     @app.get("/metrics")
     async def metrics():
-        s = engine.scheduler
-        return PlainTextResponse(engine.stats.render(s.num_running, s.num_waiting))
+        return PlainTextResponse(engine.stats.render(engine.gauges()))
 
     @app.post("/v1/chat/completions")
     async def chat_completions(req: ChatCompletionRequest):
@@ -221,20 +223,16 @@ def build_app(engine: LLMEngine) -> FastAPI:
 
 def main() -> None:
     p = argparse.ArgumentParser(description="tiny_engine OpenAI-compatible server")
-    p.add_argument("--model", default=EngineConfig.model)
-    p.add_argument("--revision", default=None)
-    p.add_argument("--served-model-name", default=None)
+    add_engine_args(p)
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8001)
-    p.add_argument("--device", default="auto")
-    p.add_argument("--dtype", default="auto")
-    p.add_argument("--max-model-len", type=int, default=None)
     p.add_argument("--log-level", default="info")
     args = p.parse_args()
 
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    engine = LLMEngine(EngineConfig(model=args.model, revision=args.revision, device=args.device, dtype=args.dtype,
-                                    max_model_len=args.max_model_len, served_model_name=args.served_model_name))
+    config = config_from_args(args)
+    logger.info("features: %s", " | ".join(enabled_features(config)))
+    engine = LLMEngine(config)
     uvicorn.run(build_app(engine), host=args.host, port=args.port, log_level=args.log_level)
 
 

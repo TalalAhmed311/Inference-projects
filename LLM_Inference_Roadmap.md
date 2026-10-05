@@ -139,7 +139,7 @@ GPU
 
 ## 3. Stage 2 — Build a Tiny Inference Engine
 
-> **Status: 🚧 in progress.** Folder `01-tiny-engine/`.
+> **Status: 🧪 implemented, not yet benchmarked.** Folder `01-tiny-engine/` (preset `v0`).
 
 Build the thing you are actually interested in building.
 
@@ -167,6 +167,10 @@ The model still leaves room for the later stages:
 - **Batching (Stage 5):** the forward pass takes ragged batches through attention masks and position ids.
 
 If a later stage needs control the HF modules don't give (for example, a custom paged-attention kernel in Stage 14), the `ModelRunner` interface lets that one piece be swapped without touching the rest of the engine.
+
+**Command line:** `tiny-engine` (installed with the package) has an interactive menu and the subcommands `chat`, `generate`, `serve`, `bench`, `config` and `features`. Pick any combination with `--features paged,batching,chunked,prefix,spec,int8` (or `all`); required features are added automatically, conflicting ones are refused, and any single flag can still override.
+
+**Update (Stages 3–8):** from Stage 3 on, the engine runs the HF Qwen2 *modules* in its own layer loop (`model/forward.py`), and only the attention step is ours (`model/attention.py`). That is what lets the KV cache live in our own pool, be paged, shared across requests, and batched across sequences of different lengths. It is the same split vLLM makes between the model definition and its attention backends. Weights, norms, MLP, RoPE and LM head stay HF's, and because modules are *called*, the Stage 8 quantized layers drop in without changes.
 
 ### Architecture
 
@@ -227,6 +231,8 @@ Get a working autoregressive inference loop and establish a baseline:
 
 ## 4. Stage 3 — KV Cache
 
+> **Status: 🧪 implemented, not yet benchmarked.** In `01-tiny-engine`: `--kv-cache contiguous` · code `tiny_engine/cache/contiguous.py, model/forward.py, model/attention.py` · benchmark `benchmarks/bench_offline.py --kv-caches none contiguous` · notes `docs/stage3-kv-cache.md`.
+
 Implement KV caching yourself.
 
 ### Versions
@@ -263,6 +269,8 @@ Questions:
 ---
 
 ## 5. Stage 4 — Paged KV Cache / PagedAttention
+
+> **Status: 🧪 implemented, not yet benchmarked.** In `01-tiny-engine`: `--kv-cache paged` · code `tiny_engine/cache/paged.py` · benchmark `benchmarks/stage4_paged_capacity.py` · notes `docs/stage4-paged-attention.md`.
 
 Move from contiguous KV cache to block-based allocation.
 
@@ -323,6 +331,8 @@ vLLM PagedAttention / KV management
 
 ## 6. Stage 5 — Scheduler + Continuous Batching
 
+> **Status: 🧪 implemented, not yet benchmarked.** In `01-tiny-engine`: `--scheduler fifo|static|continuous --enable-chunked-prefill` · code `tiny_engine/scheduler/` · benchmark `benchmarks/stage5_scheduling.py` · notes `docs/stage5-scheduling.md`.
+
 Add multiple simultaneous requests.
 
 ### Initial system
@@ -377,6 +387,8 @@ D enters
 ---
 
 ## 7. Stage 6 — Prefix Caching
+
+> **Status: 🧪 implemented, not yet benchmarked.** In `01-tiny-engine`: `--enable-prefix-caching` · code `tiny_engine/cache/prefix.py, cache/paged.py` · benchmark `benchmarks/stage6_prefix_caching.py` · notes `docs/stage6-prefix-caching.md`.
 
 Now reuse KV states for shared prefixes.
 
@@ -434,6 +446,8 @@ Measure:
 
 ## 8. Stage 7 — Speculative Decoding
 
+> **Status: 🧪 implemented, not yet benchmarked.** In `01-tiny-engine`: `--speculative-model Qwen/Qwen2.5-0.5B-Instruct` · code `tiny_engine/spec_decode/` · benchmark `benchmarks/stage7_speculative.py` · notes `docs/stage7-speculative-decoding.md`.
+
 Implement draft/verify decoding.
 
 ```text
@@ -462,6 +476,8 @@ accept / reject
 ---
 
 ## 9. Stage 8 — Quantization
+
+> **Status: 🧪 implemented, not yet benchmarked.** In `01-tiny-engine`: `--quantization int8|int4|fp8` · code `tiny_engine/quantization/` · benchmark `benchmarks/stage8_quantization.py` · notes `docs/stage8-quantization.md`.
 
 Study model compression and inference efficiency.
 
@@ -884,7 +900,7 @@ Prioritize the parts that connect naturally to your inference work.
 
 Recommended main repository.
 
-Stages 3–7 extend the single `tiny_engine` package in `01-tiny-engine/` rather than copying it. Each new technique is added as a selectable version (for example, cache = none | contiguous | paged), so older versions stay runnable for before/after comparisons. Each stage's numbered folder holds that stage's write-up, benchmarks and results.
+Stages 2–8 live in the single `tiny_engine` package in `01-tiny-engine/` instead of separate folders. Each technique is a selectable version (cache = none | contiguous | paged, scheduler = fifo | static | continuous, …), so older versions stay runnable for before/after comparisons. Each stage's write-up is in `01-tiny-engine/docs/`, its benchmark in `01-tiny-engine/benchmarks/`, and its numbers in `01-tiny-engine/results/`.
 
 ```text
 llm-inference-lab/
@@ -894,35 +910,18 @@ llm-inference-lab/
 │   ├── architecture-notes/
 │   └── request-trace/
 │
-├── 01-tiny-engine/          # the engine package that later stages extend
+├── 01-tiny-engine/          # Stages 2–8: one engine package, every technique a config switch
 │   ├── tiny_engine/
-│   │   ├── model/            # Qwen2 via transformers + ModelRunner
-│   │   ├── serving/          # OpenAI-compatible server
-│   │   └── ...               # tokenizer, sampling, scheduler, engine
-│   ├── scripts/
+│   │   ├── model/            # HF Qwen2 modules + our layer loop and attention
+│   │   ├── cache/            # Stage 3 contiguous, Stage 4 paged, Stage 6 prefix hashing
+│   │   ├── scheduler/        # Stage 5 fifo / static / continuous (+ chunked prefill)
+│   │   ├── spec_decode/      # Stage 7 draft + verify
+│   │   ├── quantization/     # Stage 8 int8 / int4 / fp8 weight-only layers
+│   │   └── serving/          # OpenAI-compatible server
+│   ├── benchmarks/           # bench_offline.py (2–3), stage4…stage8 scripts
+│   ├── docs/                 # one write-up per stage
 │   ├── tests/
-│   ├── benchmarks/
 │   └── results/
-│
-├── 02-kv-cache/
-│   ├── implementation/
-│   └── benchmarks/
-│
-├── 03-paged-attention/
-│   ├── implementation/
-│   └── benchmarks/
-│
-├── 04-scheduler/
-│   ├── fifo/
-│   ├── static-batching/
-│   ├── continuous-batching/
-│   └── benchmarks/
-│
-├── 05-prefix-caching/
-│
-├── 06-speculative-decoding/
-│
-├── 07-quantization/
 │
 ├── 08-vllm-internals/
 │

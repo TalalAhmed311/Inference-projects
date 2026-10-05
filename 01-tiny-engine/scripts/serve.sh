@@ -3,7 +3,10 @@
 #
 #   bash scripts/serve.sh
 #   MODEL=Qwen/Qwen2.5-0.5B-Instruct PORT=8002 bash scripts/serve.sh
-#   bash scripts/serve.sh --log-level debug        # extra args go to the server
+#   PRESET=batching bash scripts/serve.sh           # Stage 5 engine (v0 | kv | paged | batching | prefix)
+#   FEATURES=paged,batching,prefix,spec bash scripts/serve.sh   # any combination (tiny-engine features)
+#   FEATURES=all bash scripts/serve.sh              # every feature
+#   bash scripts/serve.sh --speculative-model Qwen/Qwen2.5-0.5B-Instruct   # extra args go to the server
 
 set -euo pipefail
 
@@ -16,6 +19,8 @@ PORT="${PORT:-8001}"
 DEVICE="${DEVICE:-auto}"
 DTYPE="${DTYPE:-auto}"
 MAX_MODEL_LEN="${MAX_MODEL_LEN:-8192}"
+PRESET="${PRESET:-v0}"
+FEATURES="${FEATURES:-}"
 
 if [[ -f "$VENV_DIR/bin/activate" ]]; then
   # shellcheck disable=SC1091
@@ -25,9 +30,9 @@ fi
 mkdir -p "$STAGE_DIR/logs"
 LOG_FILE="$STAGE_DIR/logs/tiny_engine_$(date +%Y%m%d_%H%M%S).log"
 
-echo "Serving $MODEL on $HOST:$PORT (log: $LOG_FILE)"
+echo "Serving $MODEL (preset $PRESET${FEATURES:+, features $FEATURES}) on $HOST:$PORT (log: $LOG_FILE)"
 cd "$STAGE_DIR"
 python -m tiny_engine.serving.api_server \
-  --model "$MODEL" --host "$HOST" --port "$PORT" \
+  --preset "$PRESET" ${FEATURES:+--features "$FEATURES"} --model "$MODEL" --host "$HOST" --port "$PORT" \
   --device "$DEVICE" --dtype "$DTYPE" --max-model-len "$MAX_MODEL_LEN" \
   "$@" 2>&1 | tee "$LOG_FILE"

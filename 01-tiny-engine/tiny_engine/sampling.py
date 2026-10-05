@@ -125,6 +125,10 @@ def apply_min_p(logits: torch.Tensor, min_p: float) -> torch.Tensor:
     return logits
 
 
+def needs_penalties(p: SamplingParams) -> bool:
+    return p.repetition_penalty != 1.0 or bool(p.frequency_penalty) or bool(p.presence_penalty)
+
+
 class Sampler:
     def __call__(self, logits: torch.Tensor, params: SamplingParams, prompt_ids: list[int],
                  output_ids: list[int], generator: torch.Generator | None = None) -> int:
@@ -132,9 +136,14 @@ class Sampler:
         logits = apply_penalties(logits, prompt_ids, output_ids, params)
         if params.greedy:
             return int(torch.argmax(logits))
+        return int(torch.multinomial(self.probs(logits, params), 1, generator=generator))
+
+    @staticmethod
+    def probs(logits: torch.Tensor, params: SamplingParams) -> torch.Tensor:
+        """The distribution a non-greedy request samples from (penalties already applied).
+        Speculative decoding needs it explicitly to accept or reject draft tokens."""
         logits = logits / params.temperature
         logits = apply_top_k(logits, params.top_k)
         logits = apply_top_p(logits, params.top_p)
         logits = apply_min_p(logits, params.min_p)
-        probs = logits.softmax(-1)
-        return int(torch.multinomial(probs, 1, generator=generator))
+        return logits.softmax(-1)

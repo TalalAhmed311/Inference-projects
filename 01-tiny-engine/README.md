@@ -1,128 +1,210 @@
-# Stage 2 — Tiny Inference Engine (V0)
+# Tiny Inference Engine — Stages 2–8
 
-A small LLM inference engine in Python/PyTorch, built around the same model as the Stage 1 vLLM baseline (`Qwen/Qwen2.5-1.5B-Instruct`).
+A small LLM inference engine in Python/PyTorch, built around the same model as the Stage 1 vLLM baseline (`Qwen/Qwen2.5-1.5B-Instruct`). One package, `tiny_engine`, grows stage by stage. Every technique is a config switch, so any two versions can be benchmarked side by side.
 
-The transformer is **not** reimplemented: the Hugging Face `Qwen2ForCausalLM` is the forward pass. Everything around it is built here: tokenization and the chat template, the generation loop, sampling, stop conditions, the scheduler, streaming, and an OpenAI-compatible server.
+**The transformer is not reimplemented.** Embeddings, RMSNorms, q/k/v/o projections, the MLP, the rotary embedding and the LM head are Hugging Face's Qwen2 modules. The engine owns everything an inference engine is responsible for:
+- the layer loop and attention over our own KV cache;
+- the scheduler and batching;
+- sampling, streaming, prefix reuse, speculative decoding and quantized layers;
+- an OpenAI-compatible server.
 
-**V0 is deliberately naive:**
-- no KV cache, so every step reruns the whole sequence;
-- one request at a time, first come first served.
+Because the server speaks vLLM's API, the Stage 1 smoke test and benchmark run against it unchanged.
 
-V0 is the baseline Stage 3 (KV cache) and Stage 5 (batching) improve on. Because the server speaks the same API as vLLM, the **Stage 1 smoke test and benchmark run against it unchanged**.
+## Stage map
+
+| Stage | Question | Switch | Code | Benchmark | Notes |
+|---|---|---|---|---|---|
+| 2 | Working autoregressive loop | defaults (`--preset v0`) | `engine.py`, `model/runner.py`, `sampling.py`, `request.py` | `bench_offline.py` | below |
+| 3 | What does a KV cache buy? | `--kv-cache contiguous` (`--preset kv`) | `cache/pool.py`, `cache/contiguous.py`, `model/forward.py`, `model/attention.py`, `model/cached_runner.py` | `bench_offline.py --kv-caches none contiguous` | [docs](docs/stage3-kv-cache.md) |
+| 4 | Why is my KV cache wasting memory? | `--kv-cache paged` (`--preset paged`) | `cache/paged.py` | `stage4_paged_capacity.py` | [docs](docs/stage4-paged-attention.md) |
+| 5 | Who gets the GPU each step? | `--scheduler fifo/static/continuous`, `--enable-chunked-prefill` (`--preset batching`) | `scheduler/` | `stage5_scheduling.py` | [docs](docs/stage5-scheduling.md) |
+| 6 | Reuse a shared system prompt | `--enable-prefix-caching` (`--preset prefix`) | `cache/prefix.py`, `cache/paged.py` | `stage6_prefix_caching.py` | [docs](docs/stage6-prefix-caching.md) |
+| 7 | Can a small model speed up a big one? | `--speculative-model … --num-speculative-tokens k` | `spec_decode/` | `stage7_speculative.py` | [docs](docs/stage7-speculative-decoding.md) |
+| 8 | What does INT8/INT4/FP8 buy? | `--quantization int8/int4/fp8` | `quantization/` | `stage8_quantization.py` | [docs](docs/stage8-quantization.md) |
+
+## The `tiny-engine` command
+
+`pip install -e .` installs a `tiny-engine` command (also `python -m tiny_engine`):
 
 ```text
-prompt ─► tokenizer ─► ModelRunner (Qwen2, full sequence) ─► logits ─► Sampler ─► token
-              ▲                                                                   │
-              └──────────────── append to sequence, check stop ◄──────────────────┘
+tiny-engine                              interactive menu: tick features, pick a model, choose what to run
+tiny-engine features                     list every feature and what it does
+tiny-engine config   [options]           show the resolved configuration (no model is loaded)
+tiny-engine chat     [options]           chat in the terminal, with metrics after every reply
+tiny-engine generate [options] "prompt"  one-shot prompts (--show-steps prints every engine step)
+tiny-engine serve    [options]           OpenAI-compatible server on :8001
+tiny-engine bench    STAGE [options]     run a stage benchmark: 2 3 4 5 6 7 8 online
+```
+
+### Choosing features
+
+`--features` (or `-f`) takes any combination, comma-separated or repeated:
+
+| Feature | Stage | What it turns on |
+|---|---|---|
+| `kv` | 3 | contiguous KV cache (one reserved range per request) |
+| `paged` | 4 | paged KV cache (16-token blocks on demand) |
+| `static` | 5 | static batching |
+| `batching` | 5 | continuous batching |
+| `chunked` | 5 | chunked prefill, 2,048-token step budget |
+| `prefix` | 6 | prefix caching |
+| `spec` | 7 | speculative decoding, draft `Qwen2.5-0.5B-Instruct`, k = 4 |
+| `int8` · `int4` · `fp8` | 8 | quantized weights |
+
+Rules and aliases:
+- **Alternatives:** features in the same group are alternatives. You get one KV layout (`kv` or `paged`), one scheduler (`static` or `batching`) and one quantization.
+- **Requirements are added for you:** `prefix` → `paged`; `chunked` → `batching` → `paged`; `spec` → `paged`. `tiny-engine config` shows what was added.
+- **Aliases:** `all` = `paged,batching,chunked,prefix,spec,int8`; `none` = the Stage 2 engine.
+
+```bash
+tiny-engine chat --features paged,batching,prefix
+tiny-engine chat --features all --quantization none          # everything except int8 (our int8 is slower than bf16)
+tiny-engine generate --features kv --show-steps "Explain the KV cache"
+tiny-engine serve --features spec --num-speculative-tokens 6 --port 8001
+tiny-engine bench 6 --features prefix --system-tokens 2048
+tiny-engine config --features chunked,prefix                 # see the result without loading anything
+```
+
+Individual flags always win over `--features` and `--preset`, so any setting can be tuned or switched off: `--max-num-seqs 32`, `--max-num-batched-tokens 512`, `--block-size 32`, `--speculative-model none`, `--quantization int4`, `--no-enable-prefix-caching`, `--kv-cache-memory-gib 4`, … Run `tiny-engine chat --help` for the full list.
+
+Impossible combinations are refused with a reason. For example, `--features kv,prefix` fails because prefix caching needs paged blocks.
+
+### Interactive menu
+
+Run `tiny-engine` with no arguments:
+
+```text
+ tiny-engine — choose features
+
+  [ ]  1  kv        stage 3  contiguous KV cache: one reserved range per request
+  [x]  2  paged     stage 4  paged KV cache: 16-token blocks allocated on demand
+  [ ]  3  static    stage 5  static batching: fixed batches run to completion
+  [x]  4  batching  stage 5  continuous batching: requests join and leave every step
+  ...
+  numbers toggle features (e.g. 2 6 7) · a = all · n = none · m = model · d = draft · k = draft tokens
+  c = chat · g = generate · s = serve · b = benchmark · v = view config · q = quit
+```
+
+### Chat commands
+
+`tiny-engine chat` streams replies and prints TTFT, TPOT, tok/s, how many prompt tokens came from the prefix cache, and the draft acceptance rate. Each turn resends the whole conversation, so with `prefix` on you can watch the cache hits grow.
+
+| Command | What it does |
+|---|---|
+| `/reset` | forget the conversation |
+| `/system TEXT` | set the system message |
+| `/set temperature 0.2` | change temperature, top_p, top_k, max_tokens or seed |
+| `/stats` | KV usage, prefix hits, preemptions |
+| `/features` | what this engine has switched on |
+| `/exit` | quit |
+
+## How a step works
+
+```text
+            ┌──────────────── Scheduler (Stage 5) ────────────────┐
+ waiting ─► │ running first: 1 decode token or next prompt chunk  │ ─► [(request, n_new_tokens), …]
+            │ then admit while seats / KV blocks / budget allow   │
+            │ KV full → preempt newest (recompute later)          │
+            └──────────────────────────────────────────────────────┘
+                                   │
+            KV manager (Stage 3/4/6): allocate slots, prefix hits, block tables
+                                   │
+            CachedModelRunner: pack all new tokens into one flat batch
+                                   │
+   per layer (HF modules): norm → q/k/v_proj → RoPE → OUR attention → o_proj → norm → MLP
+                                   │          writes K/V to the pool, reads each sequence's
+                                   │          context through its slot table
+            LM head on positions that sample → Sampler (or draft+verify, Stage 7)
+                                   │
+            append tokens, stop checks, stream text deltas, free finished requests' KV
 ```
 
 ## Code map
 
 ```text
-01-tiny-engine/
-├── tiny_engine/
-│   ├── config.py          EngineConfig; picks device (cuda > mps > cpu) and dtype (bf16 on Ampere+)
-│   ├── model/
-│   │   ├── loader.py      loads Qwen2 weights via transformers (dtype, SDPA attention, eval mode)
-│   │   └── runner.py      ModelRunner.forward(token_ids) → last-position logits; use_cache=False
-│   ├── tokenizer.py       chat template, encode, decode
-│   ├── sampling.py        SamplingParams (+ model defaults from generation_config.json) and Sampler
-│   ├── request.py         Request: tokens, stop conditions (EOS / stop strings / max_tokens),
-│   │                      streaming text with UTF-8 and stop-string hold-back, timing
-│   ├── scheduler.py       FIFOScheduler: one running request, others wait
-│   ├── engine.py          LLMEngine: add_request / step / generate / abort
-│   ├── async_engine.py    engine loop in a background thread ↔ asyncio streams
-│   ├── metrics.py         counters + Prometheus text (tiny:* names)
-│   └── serving/
-│       ├── protocol.py    OpenAI request schemas (+ vLLM extras: top_k, min_p, ignore_eos, min_tokens)
-│       └── api_server.py  FastAPI: /v1/chat/completions, /v1/completions, /v1/models, /health, /metrics
-├── scripts/
-│   ├── generate.py        CLI: stream a completion and print TTFT / TPOT / per-step timings
-│   └── serve.sh           start the server on :8001
-├── benchmarks/
-│   ├── bench_offline.py   direct engine benchmark: exact prompt lengths, per-step timings, vs vLLM
-│   └── run_online.sh      the Stage 1 bench.py pointed at this server
-├── tests/                 sampler + request unit tests; engine + API tests on Qwen2.5-0.5B
-└── results/
+tiny_engine/
+├── config.py            EngineConfig: every stage's switches + validation
+├── main.py              the tiny-engine command: menu, chat, generate, serve, bench, config, features
+├── cli.py               shared engine flags, presets, --features handling
+├── features.py          named features, their requirements and conflicts
+├── engine.py            LLMEngine: add_request / step / generate; one step per stage path
+├── request.py           Request: tokens, num_computed_tokens, stop rules, streaming hold-back
+├── sampling.py          SamplingParams, penalties, top-k/p, min-p, seeded sampling
+├── tokenizer.py         chat template, encode/decode
+├── model/
+│   ├── loader.py        load Qwen2 weights via transformers
+│   ├── runner.py        Stage 2: whole-sequence HF forward, no cache
+│   ├── forward.py       Stage 3+: layer loop over HF modules with our attention
+│   ├── attention.py     write K/V to the pool, gather context, causal SDPA (batched + per-sequence)
+│   └── cached_runner.py BatchItem → packed batch → logits
+├── cache/
+│   ├── pool.py          K/V tensors + memory budget (profile run, gpu_memory_utilization)
+│   ├── base.py          KVCacheManager interface
+│   ├── contiguous.py    Stage 3: one reserved range per request (+ fragmentation stats)
+│   ├── paged.py         Stage 4: blocks, block tables, ref counts, LRU of cached blocks
+│   └── prefix.py        Stage 6: chained block hashes
+├── scheduler/           Stage 5: fifo.py, static.py, continuous.py (+ chunked prefill), base.py (preemption)
+├── spec_decode/         Stage 7: draft.py (proposer with its own KV), verify.py (accept/reject)
+├── quantization/        Stage 8: linear.py (QuantLinear int8/int4/fp8), quantize.py
+├── async_engine.py      engine thread ↔ asyncio streams
+├── metrics.py           tiny:* Prometheus metrics (running, waiting, KV usage, prefix hits, spec acceptance)
+└── serving/             OpenAI-compatible FastAPI server
+benchmarks/              bench_offline.py (2/3), stage4…stage8 scripts, common.py, run_online.sh, data/
+tests/                   unit tests (no model) + engine/API tests (Qwen2.5-0.5B)
+docs/                    one write-up per stage (problem → production → ours → how to measure)
+results/                 benchmark output folders
 ```
 
-### One engine step (`LLMEngine.step`)
-
-1. **Schedule:** `FIFOScheduler.schedule()` returns the running request, or promotes the next waiting one.
-2. **Forward:** `ModelRunner.forward(prompt + output so far)` runs the full sequence and returns logits for the last position only (`logits_to_keep=1` skips the LM head for every other position).
-3. **Mask:** padded vocabulary rows (151,936 embedding rows vs 151,665 real tokens) are blocked, and so are EOS/stop tokens while `min_tokens` isn't reached yet.
-4. **Sample:** penalties → greedy, or temperature → top-k → top-p → min-p → multinomial (with a per-request RNG when `seed` is set).
-5. **Update:** append the token, decode the new text, check stop conditions, and emit a `RequestOutput` with the text delta that's safe to stream.
-
-Sampling defaults come from the model's `generation_config.json`, the same as vLLM: for Qwen2.5-Instruct that's temperature 0.7, top-p 0.8, top-k 20 and repetition penalty 1.05. Any value in the request overrides them.
-
 ## Run it on the GPU server
-
-From the repo root on the EC2 box (e.g. `/mnt/data/inference`):
 
 ```bash
 cd 01-tiny-engine
 python3 -m venv .venv && source .venv/bin/activate
 pip install -U pip && pip install -e ".[dev]"
-export HF_HOME=/mnt/data/inference/hf-cache     # reuse the Stage 1 download of Qwen2.5-1.5B
+export HF_HOME=/mnt/data/inference/hf-cache      # reuse the Stage 1 model download
 ```
 
-**1. Tests.** The engine and API tests download Qwen2.5-0.5B-Instruct (about 1 GB):
-
+**Tests:**
 ```bash
-pytest -q                                        # everything
-TINY_SKIP_MODEL_TESTS=1 pytest -q                # sampler + request logic only
+TINY_SKIP_MODEL_TESTS=1 pytest -q    # unit tests: caches, schedulers, attention vs dense, spec acceptance, quantization
+pytest -q                            # + every engine mode vs transformers' greedy output (Qwen2.5-0.5B, fp32)
+```
+`test_engine.py::test_mode_matches_transformers` and `test_all_features_together_match_transformers` are the key correctness checks. Contiguous, paged, static, continuous, chunked prefill, prefix caching, preemption and speculative decoding must all produce exactly HF's greedy tokens.
+
+**Try each stage from the CLI:**
+```bash
+python scripts/generate.py --prompt "Explain the KV cache." --temperature 0 --show-steps                 # Stage 2
+python scripts/generate.py --preset kv --prompt "Explain the KV cache." --temperature 0 --show-steps     # Stage 3
+python scripts/generate.py --preset paged --speculative-model Qwen/Qwen2.5-0.5B-Instruct \
+       --prompt "Write a haiku about GPUs" --temperature 0                                              # Stage 7
+python scripts/generate.py --preset paged --quantization int4 --prompt "Hello"                          # Stage 8
 ```
 
-`test_greedy_matches_transformers_generate` is the key correctness check: the engine's greedy output must equal `model.generate()` token for token.
-
-**2. Generate from the CLI:**
-
+**Serve, then reuse the Stage 1 tools:**
 ```bash
-python scripts/generate.py --prompt "Explain the KV cache in two sentences." --temperature 0
-python scripts/generate.py --prompt "Count to 30" --temperature 0 --max-tokens 64 --show-steps
-```
-
-`--show-steps` prints the sequence length and latency of every step. Without a KV cache, the step time rises as the sequence grows.
-
-**3. Serve and reuse the Stage 1 tools** (in tmux; port 8001, so vLLM can stay on 8000):
-
-```bash
-bash scripts/serve.sh
+PRESET=batching bash scripts/serve.sh                     # port 8001
 python ../00-vllm/tests/smoke_test.py --base-url http://127.0.0.1:8001/v1
-BASE=http://127.0.0.1:8001 bash ../00-vllm/deployment/curl_examples.sh
+bash benchmarks/run_online.sh --concurrency 1 4 16 64     # same bench.py as vLLM
 ```
 
-**4. Benchmarks:**
-
+**Benchmarks, one per stage** (each writes `results/<timestamp>_<tag>/`):
 ```bash
-python benchmarks/bench_offline.py --tag qwen1.5b-a10g        # in 128/512/2048 × out 128/512, 2 repeats
-bash benchmarks/run_online.sh                                  # same bench.py as vLLM; in 128/512/2048, out 128, C 1/4
-python ../00-vllm/benchmark/summarize.py results/online/*_tiny-v0
+python benchmarks/bench_offline.py --kv-caches none contiguous paged    # Stages 2–4, single request
+python benchmarks/stage4_paged_capacity.py                              # Stage 4
+python benchmarks/stage5_scheduling.py                                  # Stage 5
+python benchmarks/stage6_prefix_caching.py                              # Stage 6
+python benchmarks/stage7_speculative.py                                 # Stage 7
+python benchmarks/stage8_quantization.py                                # Stage 8
 ```
 
-`bench_offline.py` writes to `results/<timestamp>_<tag>/`:
-- `summary.csv`: TTFT, TPOT, first-10 and last-10 decode step time, tok/s, ms per 1k tokens of context, recompute ratio, peak GPU memory, and the vLLM C=1 numbers for the same shape.
-- `steps.csv`: every step's `seq_len` and forward/sample time, ready to plot step time against sequence length.
-- `env.json`: model, GPU, dtype, versions and the arguments used.
+All engine flags work on every script (`--model`, `--kv-cache-memory-gib`, `--max-num-seqs`, …). Run `--help` for the per-stage options.
 
-## What to expect, and what to look at
+## Known limits (and where they get fixed)
 
-| Question | Where to look | Expected for V0 |
-|---|---|---|
-| Is the loop correct? | `pytest` greedy parity test | identical tokens to `transformers` |
-| What does no KV cache cost? | `steps.csv`, `step_ms_per_1k_tokens`, `recompute_ratio` | step time grows with the sequence; for 2048 in / 512 out the model processes about 1.2M tokens to produce 512 (≈2,300×) |
-| How far from vLLM at C=1? | `tpot_vs_vllm` column | TTFT similar (both run one full prefill); TPOT several times vLLM's 8.15 ms, and worse for long prompts |
-| What does C=4 do? | `run_online.sh` results | TTFT includes waiting for every request ahead of it; tok/s stays flat (no batching) |
-
-Record what you find in a `results/REPORT.md`, as in Stage 1. Those numbers are what Stage 3 (KV cache) has to beat.
-
-## Limits of V0, and which stage fixes each
-
-| Limit | Fixed in |
+| Limit | Where |
 |---|---|
-| Recomputes the full sequence every step | Stage 3: KV cache (plugs into the HF model through a custom `Cache`) |
-| KV memory per request is contiguous and unmanaged | Stage 4: paged KV blocks |
-| One request at a time | Stage 5: static, then continuous batching |
-| Shared prompt prefixes are recomputed | Stage 6: prefix caching |
-| Re-decodes the whole output each step to stream text | fine at this scale; vLLM keeps decode offsets instead |
+| Attention gathers K/V into a dense copy before SDPA; no CUDA graphs; per-step Python overhead | Stages 12–15 (C++/CUDA, FlashAttention, optimized engine) |
+| Our quantized layers dequantize the full weight every forward (memory win, speed loss) | Stage 13 fused kernels |
+| Preemption recomputes; no swap to CPU | good enough at this scale |
+| Sliding-window attention not implemented | Qwen2.5 doesn't use it by default |
+| One GPU | Stage 16 (tensor parallelism) |

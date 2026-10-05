@@ -1,4 +1,4 @@
-"""Request state: tokens so far, streaming text, stop conditions, timing."""
+"""Request state: tokens so far, KV progress, streaming text, stop conditions, timing."""
 
 from __future__ import annotations
 
@@ -60,6 +60,16 @@ class RequestOutput:
     num_output_tokens: int
     output_token_ids: list[int] = field(default_factory=list)
     metrics: RequestMetrics | None = None
+    num_cached_tokens: int = 0  # prompt tokens served from the prefix cache
+    num_preemptions: int = 0
+
+    @staticmethod
+    def merge(outputs: list[RequestOutput]) -> RequestOutput:
+        """Combine several outputs of one request from the same step (speculative decoding)."""
+        last = outputs[-1]
+        last.new_token_ids = [t for o in outputs for t in o.new_token_ids]
+        last.delta_text = "".join(o.delta_text for o in outputs)
+        return last
 
 
 class Request:
@@ -69,9 +79,14 @@ class Request:
         self.request_id = request_id
         self.prompt_token_ids = list(prompt_token_ids)
         self.output_token_ids: list[int] = []
+        self.token_ids: list[int] = list(prompt_token_ids)  # prompt + output, the sequence the model sees
         self.params = params
         self.status = RequestStatus.WAITING
         self.metrics = RequestMetrics(arrival_time=arrival_time if arrival_time is not None else time.time())
+        # Tokens whose K/V are already in the cache. The next step feeds token_ids[num_computed_tokens:].
+        self.num_computed_tokens = 0
+        self.num_cached_tokens = 0  # prompt tokens reused from the prefix cache on first admission
+        self.num_preemptions = 0
         self._decoder = decoder
         self._eos = eos_token_ids
         self._max_model_len = max_model_len
@@ -88,24 +103,42 @@ class Request:
 
     @property
     def all_token_ids(self) -> list[int]:
-        return self.prompt_token_ids + self.output_token_ids
+        return self.token_ids
 
     @property
     def num_tokens(self) -> int:
-        return len(self.prompt_token_ids) + len(self.output_token_ids)
+        return len(self.token_ids)
+
+    @property
+    def num_prompt_tokens(self) -> int:
+        return len(self.prompt_token_ids)
+
+    @property
+    def num_output_tokens(self) -> int:
+        return len(self.output_token_ids)
+
+    @property
+    def is_prefill(self) -> bool:
+        """More than the last token still has to go through the model."""
+        return self.num_tokens - self.num_computed_tokens > 1
 
     @property
     def finish_reason(self) -> str | None:
         return self.status.value if self.status.finished else None
 
-    def blocked_token_ids(self) -> list[int]:
+    def reserve_tokens(self, max_model_len: int, extra: int = 0) -> int:
+        """Most tokens this request can ever hold: what a contiguous cache must reserve."""
+        return min(max_model_len, self.num_prompt_tokens + self.params.max_tokens + extra)
+
+    def blocked_token_ids(self, extra_outputs: int = 0) -> list[int]:
         """Tokens that may not be sampled yet (EOS/stop tokens before min_tokens)."""
-        if len(self.output_token_ids) >= self.params.min_tokens:
+        if self.num_output_tokens + extra_outputs >= self.params.min_tokens:
             return []
         return sorted(self._eos | set(self.params.stop_token_ids))
 
     def append_token(self, token_id: int) -> RequestOutput:
         self.output_token_ids.append(token_id)
+        self.token_ids.append(token_id)
         n = len(self.output_token_ids)
         p = self.params
 
@@ -152,8 +185,10 @@ class Request:
             text=self._text[:self._sent],
             finished=finished,
             finish_reason=self.finish_reason,
-            num_prompt_tokens=len(self.prompt_token_ids),
-            num_output_tokens=len(self.output_token_ids),
+            num_prompt_tokens=self.num_prompt_tokens,
+            num_output_tokens=self.num_output_tokens,
             output_token_ids=list(self.output_token_ids) if finished else [],
             metrics=self.metrics if finished else None,
+            num_cached_tokens=self.num_cached_tokens,
+            num_preemptions=self.num_preemptions,
         )
