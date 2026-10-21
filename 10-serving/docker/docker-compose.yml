@@ -1,0 +1,65 @@
+# Stage 11 — tiny-engine + metrics + optional LB front.
+# Build context must be repo root: docker compose -f 10-serving/docker/docker-compose.yml build
+services:
+  engine-1:
+    build:
+      context: ../..
+      dockerfile: 10-serving/docker/Dockerfile
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    environment:
+      HF_HOME: /data/hf-cache
+      TINY_FEATURES: paged,batching,chunked,prefix
+    volumes:
+      - hf-cache:/data/hf-cache
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Second replica only if the host has 2+ GPUs; otherwise comment out.
+  # engine-2:
+  #   extends: engine-1
+  #   environment:
+  #     CUDA_VISIBLE_DEVICES: "1"
+  #   ports:
+  #     - "8002:8001"
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    volumes:
+      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ../grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+  nginx:
+    image: nginx:1.27-alpine
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      - engine-1
+
+volumes:
+  hf-cache:

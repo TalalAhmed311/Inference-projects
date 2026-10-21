@@ -1,0 +1,31 @@
+{
+  "title": "Tiny Engine (stub)",
+  "uid": "tiny-engine-stub",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Running requests (fill after scrape)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "tiny_engine_running_requests",
+          "legendFormat": "running"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "KV cache usage ratio",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "tiny_engine_kv_cache_usage_ratio",
+          "legendFormat": "kv_usage"
+        }
+      ]
+    }
+  ]
+}

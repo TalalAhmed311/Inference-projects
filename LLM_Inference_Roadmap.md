@@ -527,6 +527,8 @@ Quality
 
 ## 10. Stage 9 — Deep vLLM Source Dive
 
+> **Status: 📦 scaffolded (2026-10-13).** Folder `08-vllm-internals/`. Mapping + trace guides; run `scripts/vllm_source_checklist.sh` on a vLLM checkout. Fill `results/` after traces.
+
 At this point, the tiny engine should have:
 
 ```text
@@ -579,6 +581,8 @@ vLLM implementation
 
 ## 11. Stage 10 — SGLang
 
+> **Status: 📦 scaffolded (2026-10-13).** Folder `09-sglang/`. `deployment/setup_ec2.sh`, `serve.sh`, `benchmark/run_compare.sh`, `architecture-notes/vllm-vs-sglang.md`.
+
 Do not build a second inference engine from scratch.
 
 Instead, understand how SGLang approaches similar problems differently.
@@ -604,6 +608,8 @@ Focus on architectural differences and why they exist.
 ---
 
 ## 12. Stage 11 — Production Serving
+
+> **Status: 📦 scaffolded (2026-10-13).** Folder `10-serving/`. Docker Compose (engine + Prometheus + Grafana + nginx), `scripts/load_test.sh`.
 
 Now turn the inference engine into a real service.
 
@@ -657,6 +663,8 @@ Only now go deeper into Kubernetes and production infrastructure.
 
 ## 13. Stage 12 — C++
 
+> **Status: 📦 scaffolded (2026-10-13).** Folder `11-cpp/`. CMake library + `kv_block_table_demo`, `layout_bench`.
+
 Move into C++ only after the higher-level engine is working.
 
 The progression should be:
@@ -694,6 +702,8 @@ Focus on the subset relevant to systems/inference:
 ---
 
 ## 14. Stage 13 — CUDA
+
+> **Status: 📦 scaffolded (2026-10-13).** Folder `12-cuda/`. Kernel ladder: vector add → reduction → matmul → softmax → naive attention.
 
 Now learn GPU programming because your profiler tells you where the bottleneck is.
 
@@ -743,6 +753,8 @@ Use kernel challenge platforms such as LeetGPU when useful, but keep the focus o
 
 ## 15. Stage 14 — FlashAttention
 
+> **Status: 📦 scaffolded (2026-10-13).** Folder `13-flash-attention/`. Reference tiled kernel + `benchmark/compare_pytorch.py`.
+
 Now optimize attention.
 
 ### Start with
@@ -784,6 +796,8 @@ The goal is to understand **why** FlashAttention works, not just reproduce its A
 
 ## 16. Stage 15 — Optimize the Tiny Engine
 
+> **Status: 📦 scaffolded (2026-10-13).** Folder `14-optimized-engine/`. `profiler/profile_engine.py`, A/B bench script; CLI adds `--sync-timings` / `--record-steps`.
+
 Now everything comes together.
 
 ```text
@@ -815,6 +829,8 @@ The objective is to understand:
 ---
 
 ## 17. Stage 16 — 4×A100 Capstone
+
+> **Status: 📦 scaffolded (2026-10-13).** Folder `15-distributed-inference/`. Tensor-parallel demo (`torchrun`), `benchmark/run_scaling.sh`.
 
 Only after the previous stages.
 

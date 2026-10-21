@@ -51,6 +51,10 @@ def add_engine_args(p: argparse.ArgumentParser) -> argparse.ArgumentParser:
     g.add_argument("--device", default=None, help="auto | cuda | cuda:N | mps | cpu")
     g.add_argument("--dtype", default=None, help="auto | bfloat16 | float16 | float32")
     g.add_argument("--max-model-len", type=int, default=None)
+    g.add_argument("--record-steps", action=argparse.BooleanOptionalAction, default=None,
+                   help="log per-step timings (benchmarks / profiling)")
+    g.add_argument("--sync-timings", action=argparse.BooleanOptionalAction, default=None,
+                   help="CUDA synchronize around forward for accurate step times")
     g = p.add_argument_group("engine: KV cache (stages 3, 4, 6)")
     g.add_argument("--kv-cache", choices=KV_CACHE_MODES, default=None)
     g.add_argument("--block-size", type=int, default=None)

@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: tiny-engine
+    orgId: 1
+    folder: Inference
+    type: file
+    disableDeletion: false
+    options:
+      path: /etc/grafana/provisioning/dashboards
