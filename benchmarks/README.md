@@ -1,11 +1,13 @@
-# Central benchmarks (roadmap §21)
+# Central benchmarks
 
-Wrappers point at the canonical harnesses in `00-vllm/` and `01-tiny-engine/`. Add dated results under each stage's `results/` folder.
+Cross-engine and stage harnesses. **Start here for Experiment 1:** [EXPERIMENT_PLAN.md](../EXPERIMENT_PLAN.md).
 
 | Track | Script |
 |-------|--------|
+| **Exhaustion sweep (3 engines)** | [experiments/01-engine-exhaustion/run_sweep.sh](../experiments/01-engine-exhaustion/run_sweep.sh) |
 | vLLM baseline | `../00-vllm/benchmark/bench.py` |
 | Tiny engine offline | `../01-tiny-engine/benchmarks/bench_offline.py` |
+| Tiny KV exhaustion | `../01-tiny-engine/benchmarks/stage4_paged_capacity.py` |
 | Tiny engine online | `../01-tiny-engine/benchmarks/run_online.sh` |
 | SGLang | `../09-sglang/benchmark/run_compare.sh` |
 | Production load | `../10-serving/scripts/load_test.sh` |
@@ -14,15 +16,16 @@ Wrappers point at the canonical harnesses in `00-vllm/` and `01-tiny-engine/`. A
 
 ## Metrics to record
 
-Model, hardware, batch/concurrency, prompt/output lengths, TTFT, TPOT, throughput, GPU memory, KV usage, prefix hit rate, error rate.
+Model, hardware, batch/concurrency, prompt/output lengths, TTFT, TPOT, throughput, GPU memory, KV usage, prefix hit rate, preemptions, error rate.
 
 ## Compare table template
 
-| Metric | Baseline | Optimized | vLLM |
-|--------|----------|-----------|------|
-| TTFT | | | |
-| TPOT | | | |
-| Throughput | | | |
-| Memory | | | |
+| Metric | vLLM | SGLang | tiny-engine |
+|--------|------|--------|-------------|
+| TTFT p95 @ conc N | | | |
+| TPOT p95 | | | |
+| Output tok/s | | | |
+| KV / queue signal | | | |
+| Errors / preempt | | | |
 
-Copy into `results/YYYYMMDD_compare.md` after each experiment batch.
+Copy into `experiments/01-engine-exhaustion/results/REPORT.md` after runs.

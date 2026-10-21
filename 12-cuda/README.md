@@ -34,3 +34,5 @@ Run example:
 ## Roadmap link
 
 Stage 14 (`13-flash-attention/`) replaces naive attention with tiled online-softmax FlashAttention-style kernels.
+
+**When to open this folder:** After [EXPERIMENT_PLAN.md](../EXPERIMENT_PLAN.md) Experiments 1–2; use the profiler in `14-optimized-engine/` to confirm attention/memory is the bottleneck.

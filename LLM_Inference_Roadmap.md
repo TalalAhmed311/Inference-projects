@@ -1,5 +1,7 @@
 # LLM Inference Engineering — Project-Based Roadmap
 
+> **What to run next:** [EXPERIMENT_PLAN.md](EXPERIMENT_PLAN.md) — exhaustion (vLLM / SGLang / tiny-engine), then CUDA graphs in tiny-engine on one GPU server. The `experiments/` folder holds orchestration; this file is the long-term syllabus.
+
 ## End Goal
 
 Build a small LLM inference engine from scratch, progressively optimize it, reproduce key ideas from modern inference systems, and benchmark it against production engines such as vLLM and SGLang.
@@ -661,43 +663,9 @@ Only now go deeper into Kubernetes and production infrastructure.
 
 ---
 
-## 13. Stage 12 — C++
+## 13. Stage 12 — C++ (deferred)
 
-> **Status: 📦 scaffolded (2026-10-13).** Folder `11-cpp/`. CMake library + `kv_block_table_demo`, `layout_bench`.
-
-Move into C++ only after the higher-level engine is working.
-
-The progression should be:
-
-```text
-Python inference engine
-          ↓
-"I wonder why this is slow"
-          ↓
-Profiler
-          ↓
-Find bottleneck
-          ↓
-C++
-          ↓
-CUDA
-          ↓
-Custom kernel
-```
-
-Do not learn C++ as a completely separate academic exercise.
-
-Focus on the subset relevant to systems/inference:
-
-- Pointers
-- References
-- Memory layout
-- RAII
-- Classes
-- Templates
-- STL basics
-- Compilation/linking
-- Multithreading basics
+> **Status: not in repo.** Standalone `11-cpp/` was removed; block tables and paged KV stay in Python (`01-tiny-engine/tiny_engine/cache/`). If you need native code, go straight to CUDA kernels in `12-cuda/` after [EXPERIMENT_PLAN.md](EXPERIMENT_PLAN.md) Experiment 2–3.
 
 ---
 
@@ -945,7 +913,9 @@ llm-inference-lab/
 │
 ├── 10-serving/
 │
-├── 11-cpp/
+├── experiments/             # active experiment tracks (see EXPERIMENT_PLAN.md)
+│   ├── 01-engine-exhaustion/
+│   └── 02-cuda-graphs-tiny/
 │
 ├── 12-cuda/
 │   ├── vector-add/
@@ -1146,9 +1116,7 @@ SGLang
   ↓
 Production serving
   ↓
-C++
-  ↓
-CUDA
+CUDA (12-cuda / 13-flash-attention)
   ↓
 FlashAttention
   ↓

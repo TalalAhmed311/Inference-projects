@@ -197,7 +197,7 @@ All engine flags work on every script (`--model`, `--kv-cache-memory-gib`, `--ma
 
 | Limit | Where |
 |---|---|
-| Attention gathers K/V into a dense copy before SDPA; no CUDA graphs; per-step Python overhead | Stages 12–15 (C++/CUDA, FlashAttention, optimized engine) |
+| Attention gathers K/V into a dense copy before SDPA; no CUDA graphs; per-step Python overhead | [EXPERIMENT_PLAN.md](../EXPERIMENT_PLAN.md) Exp 2 (CUDA graphs), `12-cuda/` / `13-flash-attention/`, `14-optimized-engine/` |
 | Our quantized layers dequantize the full weight every forward (memory win, speed loss) | Stage 13 fused kernels |
 | Preemption recomputes; no swap to CPU | good enough at this scale |
 | Sliding-window attention not implemented | Qwen2.5 doesn't use it by default |
