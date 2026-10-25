@@ -7,13 +7,16 @@
 #   BASE_URL=http://127.0.0.1:8001/v1 ENGINE=tiny bash run_sweep.sh
 set -euo pipefail
 
+export PYTHONUNBUFFERED=1
+
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BENCH="$ROOT/00-vllm/benchmark/bench.py"
 ENGINE="${ENGINE:-unknown}"
 BASE_URL="${BASE_URL:-http://127.0.0.1:8000/v1}"
 STAMP="$(date +%Y%m%d_%H%M%S)"
 OUT="$(cd "$(dirname "$0")" && pwd)/results/${STAMP}_${ENGINE}"
-CONCURRENCIES="${CONCURRENCIES:-1 4 16 32 64}"
+# Experiment plan default: 1 → 4 → 16 → 32 → 64 → 128
+CONCURRENCIES="${CONCURRENCIES:-1 4 16 32 64 128}"
 
 mkdir -p "$OUT"
 echo "engine=$ENGINE base_url=$BASE_URL out=$OUT concurrencies=$CONCURRENCIES"

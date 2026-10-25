@@ -70,6 +70,17 @@ def add_engine_args(p: argparse.ArgumentParser) -> argparse.ArgumentParser:
     g = p.add_argument_group("engine: quantization (stage 8)")
     g.add_argument("--quantization", choices=(*QUANT_METHODS, "none"), default=None)
     g.add_argument("--quant-group-size", type=int, default=None)
+    g = p.add_argument_group("engine: CUDA graphs (experiment 2)")
+    g.add_argument("--enable-cuda-graph", action=argparse.BooleanOptionalAction, default=None,
+                   help="capture decode CUDA graphs for fixed batch-size buckets")
+    g.add_argument("--cuda-graph-buckets", default=None, metavar="LIST",
+                   help="comma-separated batch sizes to capture, e.g. 1,2,4,8,16,32,64")
+    g.add_argument("--cuda-graph-context-buckets", default=None, metavar="LIST",
+                   help="comma-separated context tiers, e.g. 512,2048,8192")
+    g.add_argument("--cuda-graph-max-context", type=int, default=None,
+                   help="single context tier (overrides --cuda-graph-context-buckets)")
+    g.add_argument("--cuda-graph-warmup", type=int, default=None,
+                   help="eager dry-runs per bucket before capture")
     return p
 
 
@@ -109,4 +120,12 @@ def enabled_features(config: EngineConfig) -> list[str]:
         out.append("prefix caching")
     if config.quantization:
         out.append(f"{config.quantization} weights")
+    if config.enable_cuda_graph:
+        out.append(
+            "CUDA graphs (B="
+            + ",".join(map(str, config.parsed_cuda_graph_buckets()))
+            + "; L="
+            + ",".join(map(str, config.parsed_cuda_graph_context_buckets()))
+            + ")"
+        )
     return out

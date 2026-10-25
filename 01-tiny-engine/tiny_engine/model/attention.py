@@ -261,7 +261,13 @@ def paged_attention(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, k_cache: 
         K = _read_kv_batched(k_cache, g).transpose(1, 2)  # [B, Hkv, Lmax, D]
         V = _read_kv_batched(v_cache, g).transpose(1, 2)
         O = _sdpa(Q, K, V, g.mask, scale)  # [B, H, Qmax, D]
-        out[g.out_index] = O.transpose(1, 2)[g.token_valid]
+        # Boolean indexing (O[token_valid]) is not CUDA-graph capture-safe.
+        # Decode (Qmax==1) uses index_copy_; general path uses a dense write + mask.
+        O_bt = O.transpose(1, 2)  # [B, Qmax, H, D]
+        if O_bt.shape[1] == 1:
+            out.index_copy_(0, g.out_index, O_bt[:, 0])
+        else:
+            out[g.out_index] = O_bt[g.token_valid]
 
     for s in meta.singles:
         n = s.end - s.start

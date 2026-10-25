@@ -4,6 +4,8 @@ This is the **active spine** of the repo. The full syllabus lives in `LLM_Infere
 
 **Goal:** Compare **vLLM**, **SGLang**, and **tiny-engine** under **capacity exhaustion**, then optimize **tiny-engine** with **CUDA graphs** (and later custom kernels), and re-run the same tests on **one server**.
 
+**Measured findings (detailed why):** [`experiments/FINDINGS.md`](experiments/FINDINGS.md) — rankings, capacity cliffs, CUDA-graph padding / regressions, FAQ.
+
 **Deferred:** Standalone C++ track (`11-cpp/` removed). Paged KV and block tables stay in Python (`01-tiny-engine/tiny_engine/cache/`); GPU work goes straight to `12-cuda/` and `13-flash-attention/` when needed.
 
 ---
@@ -15,6 +17,7 @@ Inference projects/
 ├── EXPERIMENT_PLAN.md          ← you are here
 ├── experiments/                ← orchestration scripts + notes per experiment
 │   ├── README.md
+│   ├── FINDINGS.md             ← detailed “why” for Exp 1–2 results
 │   ├── 01-engine-exhaustion/
 │   └── 02-cuda-graphs-tiny/
 │
@@ -140,9 +143,9 @@ python benchmarks/stage4_paged_capacity.py --kv-cache-memory-gib 1.0 --num-reque
 
 ### Done when
 
-- [ ] All three engines completed the same concurrency sweep without changing model or hardware.
-- [ ] Tiny `stage4_paged_capacity` run at least two KV budget settings.
-- [ ] REPORT written with a clear “capacity cliff” story.
+- [x] All three engines completed the same concurrency sweep without changing model or hardware. *(2026-10-24, 1× L4; see `experiments/01-engine-exhaustion/results/REPORT.md`)*
+- [x] Tiny `stage4_paged_capacity` run at least two KV budget settings. *(0.5 GiB/128 and 1.0 GiB/256)*
+- [x] REPORT written with a clear “capacity cliff” story.
 
 ---
 
@@ -201,9 +204,9 @@ bash ../../01-tiny-engine/benchmarks/run_online.sh --concurrency 32 64
 
 ### Done when
 
-- [ ] Graph path works for at least bucket size 1 and one multi-seq bucket on GPU.
-- [ ] Experiment 1 tiny online sweep repeated with same flags except CUDA graphs on.
-- [ ] Honest “no win” write-up accepted if batching is too dynamic.
+- [x] Graph path works for at least bucket size 1 and one multi-seq bucket on GPU. *(buckets up to 64 × context tiers 512/2048/8192)*
+- [x] Experiment 1 tiny online sweep repeated with same flags except CUDA graphs on. *(see `experiments/02-cuda-graphs-tiny/results/REPORT.md`)*
+- [x] Honest “no win” write-up accepted if batching is too dynamic. *(wins on short prompts; regressions when context padding dominates)*
 
 ---
 

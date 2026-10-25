@@ -79,12 +79,27 @@ class LLMEngine:
         if num_slots < max(bs, 256):
             raise RuntimeError(f"not enough memory for a KV cache: {budget / 2**30:.2f} GiB budget "
                                f"→ {num_slots} slots; raise gpu_memory_utilization or set kv_cache_memory_gib")
-        self.kv = make_kv_manager(cfg.kv_cache, num_slots, cfg.block_size, cfg.enable_prefix_caching)
-        self.pool = KVPool(spec, num_slots, self.device)
+
+        # Reserve trailing slots for CUDA-graph pad rows so pad writes never touch live KV.
+        graph_pad = 0
+        if cfg.enable_cuda_graph and self.device.type == "cuda":
+            graph_pad = max(cfg.parsed_cuda_graph_buckets())
+            # Align reserved pad region to a block boundary for paged managers.
+            graph_pad = -(-graph_pad // bs) * bs
+            if num_slots - graph_pad < max(bs, 256):
+                raise RuntimeError(
+                    f"CUDA graphs need {graph_pad} pad slots but only {num_slots} KV slots are available"
+                )
+        usable = num_slots - graph_pad
+        self.kv = make_kv_manager(cfg.kv_cache, usable, cfg.block_size, cfg.enable_prefix_caching)
+        self.pool = KVPool(spec, num_slots, self.device)  # full pool; pad uses the tail
         self.runner = CachedModelRunner(self.loaded, self.kv, self.pool)
-        logger.info("KV cache: %s, %d slots (%.2f GiB, %d KiB/token), max %.1f full-length requests",
-                    cfg.kv_cache, num_slots, self.pool.nbytes / 2**30, spec.bytes_per_token // 1024,
-                    num_slots / self.max_model_len)
+        logger.info("KV cache: %s, %d slots (%.2f GiB, %d KiB/token), max %.1f full-length requests%s",
+                    cfg.kv_cache, usable, usable * per_token / 2**30, spec.bytes_per_token // 1024,
+                    usable / self.max_model_len,
+                    f" (+{graph_pad} CUDA-graph pad slots)" if graph_pad else "")
+        if cfg.enable_cuda_graph:
+            self._init_cuda_graphs(graph_pad, num_slots)
 
     def _profile_run(self) -> None:
         """The largest single forward the scheduler can issue, so the KV budget leaves room for it."""
@@ -92,6 +107,21 @@ class LLMEngine:
         ids = torch.zeros((1, n), dtype=torch.long, device=self.device)
         with torch.inference_mode():
             self.loaded.model(input_ids=ids, use_cache=False, logits_to_keep=1)
+
+    def _init_cuda_graphs(self, graph_pad: int, num_slots: int) -> None:
+        cfg = self.config
+        if self.device.type != "cuda":
+            logger.warning("enable_cuda_graph set but device is %s; skipping capture", self.device)
+            return
+        batch_buckets = cfg.parsed_cuda_graph_buckets()
+        context_buckets = cfg.parsed_cuda_graph_context_buckets()
+        # Cap context tiers at the engine's max_model_len.
+        context_buckets = tuple(c for c in context_buckets if c <= self.max_model_len)
+        if self.max_model_len not in context_buckets:
+            context_buckets = tuple(sorted(set(context_buckets) | {self.max_model_len}))
+        pad_slots = list(range(num_slots - graph_pad, num_slots - graph_pad + max(batch_buckets)))
+        assert isinstance(self.runner, CachedModelRunner)
+        self.runner.enable_cuda_graphs(batch_buckets, context_buckets, pad_slots, cfg.cuda_graph_warmup)
 
     @classmethod
     def from_pretrained(cls, model: str, **kwargs) -> LLMEngine:
@@ -150,6 +180,9 @@ class LLMEngine:
             g["kv_cache_usage_perc"] = round(self.kv.usage(), 4)
             g["prefix_cache_queries_total"] = self.kv.prefix_queries
             g["prefix_cache_hits_total"] = self.kv.prefix_hits
+        if isinstance(self.runner, CachedModelRunner) and self.runner.cuda_graphs is not None:
+            g["cuda_graph_hits_total"] = self.runner.cuda_graphs.hits
+            g["cuda_graph_misses_total"] = self.runner.cuda_graphs.misses
         return g
 
     # ------------------------------------------------------------------ the loop
@@ -190,6 +223,7 @@ class LLMEngine:
             will_sample = start + s.num_new_tokens == r.num_tokens
             items.append(BatchItem(r.request_id, r.token_ids[start:start + s.num_new_tokens], start, int(will_sample)))
         t0 = time.perf_counter()
+        # CUDA graphs only apply to pure decode (one new token per sequence).
         logits = self.runner.execute(items)
         if self._sync:
             self.runner.synchronize()

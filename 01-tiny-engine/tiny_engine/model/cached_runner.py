@@ -6,6 +6,7 @@ a whole prompt, a prefill chunk, or one decode token.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 import torch
@@ -13,8 +14,11 @@ import torch
 from tiny_engine.cache.base import KVCacheManager
 from tiny_engine.cache.pool import KVPool
 from tiny_engine.model.attention import SHORT_QUERY_MAX, build_metadata
+from tiny_engine.model.cuda_graph import CudaGraphDecoder
 from tiny_engine.model.forward import Qwen2Forward
 from tiny_engine.model.loader import LoadedModel
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -33,10 +37,34 @@ class CachedModelRunner:
         self.device = loaded.device
         self.short_query_max = short_query_max
         self.tokens_processed = 0
+        self.cuda_graphs: CudaGraphDecoder | None = None
+
+    def enable_cuda_graphs(
+        self,
+        batch_buckets: tuple[int, ...],
+        context_buckets: tuple[int, ...],
+        pad_slots: list[int],
+        warmup: int = 3,
+    ) -> None:
+        if self.device.type != "cuda":
+            logger.warning("enable_cuda_graphs ignored: device is %s", self.device)
+            return
+        self.cuda_graphs = CudaGraphDecoder(
+            self.forward_impl, self.pool, self.device,
+            batch_buckets, context_buckets, pad_slots, warmup,
+        )
 
     @torch.inference_mode()
-    def execute(self, items: list[BatchItem]) -> torch.Tensor:
+    def execute(self, items: list[BatchItem], *, allow_cuda_graph: bool = True) -> torch.Tensor:
         """Returns float32 logits [sum(num_logits), vocab] in item order (empty if no item asks)."""
+        if allow_cuda_graph and self.cuda_graphs is not None:
+            graph_logits = self.cuda_graphs.replay(items, self.kv)
+            if graph_logits is not None:
+                self.tokens_processed += len(items)  # decode-only: one token each
+                return graph_logits
+        return self._execute_eager(items)
+
+    def _execute_eager(self, items: list[BatchItem]) -> torch.Tensor:
         q_lens = [len(it.token_ids) for it in items]
         ctx_lens = [it.start_pos + q for it, q in zip(items, q_lens)]
         flat_tokens = [t for it in items for t in it.token_ids]

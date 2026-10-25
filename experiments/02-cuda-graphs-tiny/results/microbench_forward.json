@@ -1,0 +1,9 @@
+{
+  "B1_off_forward_p50_ms": 22.25,
+  "B1_on_forward_p50_ms": 15.41,
+  "B1_delta_pct": -30.7,
+  "B8_off_forward_p50_ms": 22.90,
+  "B8_on_forward_p50_ms": 17.41,
+  "B8_delta_pct": -24.0,
+  "notes": "offline continuous+paged, sync_timings, context buckets 512/2048/8192"
+}

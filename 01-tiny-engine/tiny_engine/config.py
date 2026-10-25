@@ -64,6 +64,33 @@ class EngineConfig:
     quantization: str | None = None
     quant_group_size: int = 128
 
+    # Experiment 2 — CUDA graphs (decode-only, fixed batch × context buckets)
+    enable_cuda_graph: bool = False
+    # Cover common continuous-batch sizes up to default max_num_seqs=64.
+    cuda_graph_buckets: str | tuple[int, ...] = "1,2,4,8,16,32,64"
+    # Context-length tiers. Padding every step to max_model_len kills short-prompt decode.
+    # Captures one graph per (batch_bucket × context_bucket).
+    cuda_graph_context_buckets: str | tuple[int, ...] = "512,2048,8192"
+    # Deprecated alias: if set, used as a single context tier (overrides context_buckets).
+    cuda_graph_max_context: int | None = None
+    # Dry-run steps per bucket before capture (stabilizes allocator / cudnn).
+    cuda_graph_warmup: int = 3
+
+    @staticmethod
+    def _parse_int_list(raw: str | tuple[int, ...] | list[int]) -> tuple[int, ...]:
+        if isinstance(raw, str):
+            parts = [p.strip() for p in raw.split(",") if p.strip()]
+            return tuple(sorted({int(p) for p in parts}))
+        return tuple(sorted({int(x) for x in raw}))
+
+    def parsed_cuda_graph_buckets(self) -> tuple[int, ...]:
+        return self._parse_int_list(self.cuda_graph_buckets)
+
+    def parsed_cuda_graph_context_buckets(self) -> tuple[int, ...]:
+        if self.cuda_graph_max_context is not None:
+            return (int(self.cuda_graph_max_context),)
+        return self._parse_int_list(self.cuda_graph_context_buckets)
+
     def validate(self) -> None:
         if self.kv_cache not in KV_CACHE_MODES:
             raise ValueError(f"kv_cache must be one of {KV_CACHE_MODES}, got {self.kv_cache!r}")
@@ -86,6 +113,17 @@ class EngineConfig:
             raise ValueError("block_size and max_num_seqs must be >= 1")
         if not 0 < self.gpu_memory_utilization <= 1:
             raise ValueError("gpu_memory_utilization must be in (0, 1]")
+        if self.enable_cuda_graph:
+            if self.kv_cache == "none":
+                raise ValueError("CUDA graphs need a KV cache (contiguous or paged)")
+            buckets = self.parsed_cuda_graph_buckets()
+            ctx_buckets = self.parsed_cuda_graph_context_buckets()
+            if not buckets or any(b < 1 for b in buckets):
+                raise ValueError("cuda_graph_buckets must be positive integers")
+            if not ctx_buckets or any(c < 1 for c in ctx_buckets):
+                raise ValueError("cuda_graph_context_buckets must be positive integers")
+            if self.cuda_graph_warmup < 1:
+                raise ValueError("cuda_graph_warmup must be >= 1")
 
     def describe(self) -> str:
         parts = [f"kv={self.kv_cache}", f"sched={self.scheduler}"]
@@ -97,6 +135,10 @@ class EngineConfig:
             parts.append("prefix-cache")
         if self.quantization:
             parts.append(f"quant={self.quantization}")
+        if self.enable_cuda_graph:
+            b = ",".join(map(str, self.parsed_cuda_graph_buckets()))
+            c = ",".join(map(str, self.parsed_cuda_graph_context_buckets()))
+            parts.append(f"cuda-graph(B={b};L={c})")
         return " ".join(parts)
 
 

@@ -21,11 +21,29 @@ fi
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
 
 echo "==> Installing system packages"
-sudo apt-get update -y
-sudo apt-get install -y python3-venv python3-dev build-essential tmux htop jq
+if command -v apt-get >/dev/null 2>&1; then
+  sudo apt-get update -y
+  sudo apt-get install -y python3-venv python3-dev build-essential tmux htop jq
+elif command -v dnf >/dev/null 2>&1; then
+  # Amazon Linux 2023 / RHEL-family
+  sudo dnf install -y python3.11 python3.11-devel gcc gcc-c++ make tmux htop jq || \
+    sudo dnf install -y python3 python3-devel gcc gcc-c++ make tmux htop jq
+else
+  echo "WARN: no apt-get/dnf; assuming build deps already present" >&2
+fi
 
-echo "==> Creating virtualenv at $VENV_DIR"
-python3 -m venv "$VENV_DIR"
+# Prefer 3.11+ when available (vLLM / torch wheels); fall back to python3.
+PYTHON_BIN="${PYTHON_BIN:-}"
+if [[ -z "$PYTHON_BIN" ]]; then
+  if command -v python3.11 >/dev/null 2>&1; then
+    PYTHON_BIN=python3.11
+  else
+    PYTHON_BIN=python3
+  fi
+fi
+
+echo "==> Creating virtualenv at $VENV_DIR (with $PYTHON_BIN)"
+"$PYTHON_BIN" -m venv "$VENV_DIR"
 # shellcheck disable=SC1091
 source "$VENV_DIR/bin/activate"
 pip install --upgrade pip wheel
