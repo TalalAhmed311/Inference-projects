@@ -96,6 +96,10 @@ Run `tiny-engine` with no arguments:
 | `/features` | what this engine has switched on |
 | `/exit` | quit |
 
+## How the code connects
+
+File-by-file wiring, startup, HTTP vs CLI entry, and a debugger-friendly `step()` path: **[docs/CODE_WALKTHROUGH.md](docs/CODE_WALKTHROUGH.md)**.
+
 ## How a step works
 
 ```text
